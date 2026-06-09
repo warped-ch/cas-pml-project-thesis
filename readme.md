@@ -25,3 +25,25 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 - [Using uv with Jupyter from VSCode](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code)
 - [Jupytext](https://jupytext.org/)
   - [Jupytext Sync Extension for VSCode](https://jupytext.org/integrations/vs-code/)
+
+## Datasets / Challenges
+
+- [Teeth3DS+: An Extended Benchmark for Intraoral 3D Scans Analysis](https://arxiv.org/pdf/2210.06094)
+    - [3DTeethSeg Challenge MICCAI 2022](https://crns-smartvision.github.io/teeth3ds/#3DTeethSegSec)
+        - [Dataset](https://osf.io/xctdy/)
+    - [3DTeethLand Challenge MICCAI 2024](https://crns-smartvision.github.io/teeth3ds/#3DTeethLandSec)
+        - [Dataset](https://osf.io/um96h/)
+
+## Papers / Code
+
+### Challenges
+- [3DTeethSeg’22: 3D Teeth Scan Segmentation andLabeling Challenge](https://arxiv.org/abs/2305.18277)
+- [Detecting Dental Landmarks from Intraoral 3D Scans: the 3DTeethLand challenge](https://arxiv.org/abs/2512.08323)
+
+### Solutions
+- [3DTeethSAM: Taming SAM2 for 3D Teeth Segmentation](https://arxiv.org/abs/2512.11557)
+    - https://github.com/Crisitofy/3DTeethSAM
+- [ToothInstanceNet: Comprehensive Information from Intra-oral Scans by Integration of Large-Context and High-Resolution Predictions](https://link.springer.com/chapter/10.1007/978-3-031-88977-6_21)
+    - https://github.com/nnistelrooij/3dteethland
+- [ToothGroupNetwork]()
+    - https://github.com/limhoyeon/ToothGroupNetwork
