@@ -30,11 +30,25 @@
 # %%
 import shutil
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from tqdm.auto import tqdm
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
+
+
+# %%
+def process_file(src_file_path, dst_path):
+    if zipfile.is_zipfile(src_file_path):
+        with zipfile.ZipFile(src_file_path, "r") as archive:
+            archive.extractall(dst_path)
+    else:
+        shutil.copy2(src_file_path, dst_path / src_file_path.name)
+
+
+# %%
+# ingest Teeth3DS+ dataset
 
 dataset_src_path = Path(r"C:\Users\Andreas\Downloads\Teeth3DS+")
 print(f"dataset_src_path={dataset_src_path}")
@@ -55,15 +69,18 @@ dataset_dst_path = root_path / "dataset" / "Teeth3DS+"
 print(f"dataset_dst_path={dataset_dst_path}")
 dataset_dst_path.mkdir(parents=True, exist_ok=True)
 
-with tqdm(dataset_src_files) as pbar:
-    for f in pbar:
-        src_file = dataset_src_path / f
-        assert src_file.is_file(), f"'src_file' does not exist: {src_file}"
+# prevent "FileExistsError" for common subfolders
+(dataset_dst_path / "lower").mkdir(parents=True, exist_ok=True)
+(dataset_dst_path / "upper").mkdir(parents=True, exist_ok=True)
 
-        pbar.set_description(f"Processing {src_file.name}")
+# multiprocessing drops execution time from ~1m to ~15s
+with ThreadPoolExecutor() as executor:
+    futures = {
+        executor.submit(process_file, dataset_src_path / f, dataset_dst_path): f
+        for f in dataset_src_files
+    }
 
-        if zipfile.is_zipfile(src_file):
-            with zipfile.ZipFile(src_file, "r") as archive:
-                archive.extractall(dataset_dst_path)
-        else:
-            shutil.copy2(src_file, dataset_dst_path / src_file.name)
+    for future in tqdm(
+        as_completed(futures), total=len(futures), desc="Ingesting Dataset", unit="file"
+    ):
+        future.result()
