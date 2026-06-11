@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from tqdm.auto import tqdm
 
@@ -60,12 +61,8 @@ def get_missing_teeth(vertex_labels, vertex_label_file):
 
 
 # %%
-# load the data
-
-data = []
-for f in tqdm(list(dataset_path.rglob("*.obj")), desc="Creating DataFrame"):
-    scan_file = f
-    vertex_label_file = f.with_suffix(".json")
+def load_sample(scan_file_path):
+    vertex_label_file = scan_file_path.with_suffix(".json")
     if not vertex_label_file.exists():
         print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
         vertex_label_file = None
@@ -77,29 +74,40 @@ for f in tqdm(list(dataset_path.rglob("*.obj")), desc="Creating DataFrame"):
 
     vertex_labels = np.array(json_data["labels"]) if "labels" in json_data else None
 
-    row = {
+    return {
         "id_patient": json_data.get("id_patient", None),
-        "scan_file": scan_file.name,
-        "vertex_label_file": str(vertex_label_file),
-        "jaw_type": "lower" if "lower" in scan_file.name else "upper",
+        "scan_file": scan_file_path.name,
+        "vertex_label_file": str(vertex_label_file) if vertex_label_file else None,
+        "jaw_type": "lower" if "lower" in scan_file_path.name else "upper",
         "num_vertex_labels": len(vertex_labels) if vertex_labels is not None else pd.NA,
         "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
         "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
         "missing_teeth": get_missing_teeth(vertex_labels, vertex_label_file),
     }
-    data.append(row)
+
+
+# %%
+# load the data
+
+scan_files = list(dataset_path.rglob("*.obj"))
+
+# multiprocessing drops execution time from ~25s to ~23s
+with ThreadPoolExecutor() as executor:
+    data = list(
+        tqdm(
+            executor.map(load_sample, scan_files),
+            total=len(scan_files),
+            desc="Creating DataFrame",
+        )
+    )
 
 # %%
 # create the DataFrame
 
 df = pd.DataFrame(data)
 
-int_cols_fix = [
-    "num_vertex_labels",
-    "num_gingiva_vertex_labels",
-    "num_tooth_vertex_labels",
-]
-df[int_cols_fix] = df[int_cols_fix].astype(pd.Int32Dtype())
+# automatic type converion (automatically converts None/NaN into pd.NA for integer columns)
+df = df.convert_dtypes()
 
 df.info()
 df.head()
