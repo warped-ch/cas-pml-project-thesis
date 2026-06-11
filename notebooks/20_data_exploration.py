@@ -32,6 +32,34 @@ assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 print(f"dataset_path={dataset_path}")
 
 # %%
+# FDI two-digit notation
+
+# upper (mandibular), right (11-18), left (21-28)
+fdi_upper_right_to_left = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]
+# lower (maxillary), right (41-48), left (31-38)
+fdi_lower_right_to_left = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
+
+
+# %%
+def get_missing_teeth(vertex_labels, vertex_label_file):
+    if vertex_labels is None:
+        return None
+
+    # check lower jaw
+    if np.any(np.isin(fdi_lower_right_to_left, vertex_labels)):
+        fdi_set = set(fdi_lower_right_to_left)
+    # check upper jaw
+    elif np.any(np.isin(fdi_upper_right_to_left, vertex_labels)):
+        fdi_set = set(fdi_upper_right_to_left)
+    else:
+        print(f"⚠️ get_missing_teeth: invalid jaw (vertex_label_file={vertex_label_file})")
+        return None
+
+    missing_teeth = set(fdi_set).difference(vertex_labels)
+    return sorted(list(missing_teeth))
+
+
+# %%
 # load the data
 
 data = []
@@ -57,6 +85,7 @@ for f in tqdm(list(dataset_path.rglob("*.obj")), desc="Creating DataFrame"):
         "num_vertex_labels": len(vertex_labels) if vertex_labels is not None else pd.NA,
         "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
         "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
+        "missing_teeth": get_missing_teeth(vertex_labels, vertex_label_file),
     }
     data.append(row)
 
@@ -95,3 +124,18 @@ sns.histplot(df, x="num_tooth_vertex_labels", hue="jaw_type")
 plt.show()
 
 df.groupby("jaw_type")["num_tooth_vertex_labels"].describe()
+
+# %%
+# filter out rows where 'missing_teeth' is NaN/None
+df_missing_teeth = df[df["missing_teeth"].notna()].copy()
+# explode the list so each missing tooth gets its own row
+df_missing_teeth = df_missing_teeth.explode("missing_teeth")
+# reset the index to remove duplicate indices caused by exploding
+df_missing_teeth = df_missing_teeth.reset_index(drop=True)
+
+plt.figure(figsize=(12, 6))
+sns.histplot(df_missing_teeth, x="missing_teeth", hue="jaw_type", binwidth=1, discrete=True)
+plt.xticks(range(11, 49), rotation=45)
+plt.show()
+
+df.groupby("jaw_type")["missing_teeth"].describe()
