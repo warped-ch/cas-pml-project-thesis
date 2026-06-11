@@ -1,0 +1,97 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.3
+#   kernelspec:
+#     display_name: project-thesis (3.12.9)
+#     language: python
+#     name: python3
+# ---
+
+# %% [markdown]
+# # Exploratory Data Analysis (EDA)
+
+# %%
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from pathlib import Path
+from tqdm.auto import tqdm
+
+root_path = Path.cwd().parent
+print(f"root_path={root_path}")
+
+dataset_path = root_path / "dataset" / "Teeth3DS+"
+assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
+print(f"dataset_path={dataset_path}")
+
+# %%
+# load the data
+
+data = []
+for f in tqdm(list(dataset_path.rglob("*.obj")), desc="Creating DataFrame"):
+    scan_file = f
+    vertex_label_file = f.with_suffix(".json")
+    if not vertex_label_file.exists():
+        print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
+        vertex_label_file = None
+
+    json_data = {}
+    if vertex_label_file:
+        with open(vertex_label_file, "r") as json_file:
+            json_data = json.load(json_file)
+
+    vertex_labels = np.array(json_data["labels"]) if "labels" in json_data else None
+
+    row = {
+        "id_patient": json_data.get("id_patient", None),
+        "scan_file": scan_file.name,
+        "vertex_label_file": str(vertex_label_file),
+        "jaw_type": "lower" if "lower" in scan_file.name else "upper",
+        "num_vertex_labels": len(vertex_labels) if vertex_labels is not None else pd.NA,
+        "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
+        "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
+    }
+    data.append(row)
+
+# %%
+# create the DataFrame
+
+df = pd.DataFrame(data)
+
+int_cols_fix = [
+    "num_vertex_labels",
+    "num_gingiva_vertex_labels",
+    "num_tooth_vertex_labels",
+]
+df[int_cols_fix] = df[int_cols_fix].astype(pd.Int32Dtype())
+
+df.info()
+df.head()
+
+# %% [markdown]
+# ## Vertex label distribution
+
+# %%
+sns.histplot(df, x="num_vertex_labels", hue="jaw_type")
+plt.show()
+
+df.groupby("jaw_type")["num_vertex_labels"].describe()
+
+# %%
+sns.histplot(df, x="num_gingiva_vertex_labels", hue="jaw_type")
+plt.show()
+
+df.groupby("jaw_type")["num_gingiva_vertex_labels"].describe()
+
+# %%
+sns.histplot(df, x="num_tooth_vertex_labels", hue="jaw_type")
+plt.show()
+
+df.groupby("jaw_type")["num_tooth_vertex_labels"].describe()
