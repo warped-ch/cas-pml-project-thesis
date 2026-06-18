@@ -6,6 +6,11 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 
 ## Dev Setup / How-Tos
 
+- [Using uv with Jupyter from VSCode](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code)
+- [Jupytext](https://jupytext.org/)
+  - [Jupytext Sync Extension for VSCode](https://jupytext.org/integrations/vs-code/)
+- [Using uv with PyTorch](https://docs.astral.sh/uv/guides/integration/pytorch/)
+
 ### Setup after cloning the repository
 
 1. Sync Python project dependencies using uv:
@@ -25,12 +30,6 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 ```
 uv sync --upgrade
 ```
-
-### Jupyter Notebooks
-
-- [Using uv with Jupyter from VSCode](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code)
-- [Jupytext](https://jupytext.org/)
-  - [Jupytext Sync Extension for VSCode](https://jupytext.org/integrations/vs-code/)
 
 ## Datasets / Challenges
 

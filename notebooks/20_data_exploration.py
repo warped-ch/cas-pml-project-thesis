@@ -21,14 +21,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tqdm.auto import tqdm
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
 
-dataset_path = root_path / "dataset" / "Teeth3DS+"
+dataset_path = root_path / "data" / "Teeth3DS+"
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 print(f"dataset_path={dataset_path}")
 

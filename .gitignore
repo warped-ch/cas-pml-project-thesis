@@ -1,6 +1,6 @@
 # using jupytext...
 *.ipynb
-/dataset
+/data
 
 # Created by https://www.toptal.com/developers/gitignore/api/git,python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=git,python,visualstudiocode

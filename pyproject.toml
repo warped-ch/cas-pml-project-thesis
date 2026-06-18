@@ -11,6 +11,9 @@ dependencies = [
     "numpy>=2.4.6",
     "pandas>=3.0.3",
     "seaborn>=0.13.2",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "torch-geometric>=2.8.0",
     "tqdm>=4.68.2",
 ]
 
@@ -18,3 +21,16 @@ dependencies = [
 dev = [
     "ipykernel>=7.2.0",
 ]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
