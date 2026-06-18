@@ -7,7 +7,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.3
 #   kernelspec:
-#     display_name: project-thesis (3.12.9)
+#     display_name: project-thesis (3.12.13)
 #     language: python
 #     name: python3
 # ---

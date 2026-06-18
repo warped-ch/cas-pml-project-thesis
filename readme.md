@@ -20,6 +20,12 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
     jupytext --sync .\notebooks\*.py
     ```
 
+### Upgrade dependencies
+
+```
+uv sync --upgrade
+```
+
 ### Jupyter Notebooks
 
 - [Using uv with Jupyter from VSCode](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code)
