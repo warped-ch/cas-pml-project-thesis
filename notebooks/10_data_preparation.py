@@ -28,10 +28,17 @@
 #   - data_part_7.zip
 
 # %%
+import yaml
 from pathlib import Path
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
+
+# %%
+# load config file
+
+with open("../config/config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
 # %%
 # load Teeth3DS+ dataset
@@ -39,7 +46,7 @@ print(f"root_path={root_path}")
 
 from torch_geometric.datasets import Teeth3DS
 
-dataset_path = root_path / "data" / "Teeth3DS+"
+dataset_path = root_path / config.get("dataset_path")
 print(f"dataset_path={dataset_path}")
 dataset_path.mkdir(parents=True, exist_ok=True)
 

@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import yaml
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tqdm.auto import tqdm
@@ -28,9 +29,11 @@ from tqdm.auto import tqdm
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
 
-dataset_path = root_path / "data" / "Teeth3DS+"
-assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
-print(f"dataset_path={dataset_path}")
+# %%
+# load config file
+
+with open("../config/config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
 # %%
 # FDI two-digit notation
@@ -88,6 +91,10 @@ def load_sample(scan_file_path):
 
 # %%
 # load the data
+
+dataset_path = root_path / config.get("dataset_path")
+print(f"dataset_path={dataset_path}")
+assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
 scan_files = list(dataset_path.rglob("*.obj"))
 
