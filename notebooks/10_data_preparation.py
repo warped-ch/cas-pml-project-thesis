@@ -43,7 +43,7 @@ dataset_path = root_path / "data" / "Teeth3DS+"
 print(f"dataset_path={dataset_path}")
 dataset_path.mkdir(parents=True, exist_ok=True)
 
-split = "Teeth3DS",  # Teeth3DS, 3DTeethSeg22_challenge, 3DTeethLand_challenge
+split = "3DTeethSeg22_challenge",  # Teeth3DS, 3DTeethSeg22_challenge, 3DTeethLand_challenge
 
 train_dataset = Teeth3DS(
     root=dataset_path,
