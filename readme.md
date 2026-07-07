@@ -52,3 +52,7 @@ uv sync --upgrade
     - https://github.com/nnistelrooij/3dteethland
 - [ToothGroupNetwork]()
     - https://github.com/limhoyeon/ToothGroupNetwork
+
+## Issues & Workarounds
+
+[Read more here](doc/issues.md)
