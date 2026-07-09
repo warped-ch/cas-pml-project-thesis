@@ -4,7 +4,14 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 
 ## Resources
 
-## Dev Setup / How-Tos
+- [PyTorch](https://pytorch.org/)
+    - [Start Locally](https://pytorch.org/get-started/locally/)
+- [PyTorch3D](https://pytorch3d.org/)
+    - [Installation](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
+
+- https://medium.com/data-science/how-to-render-3d-files-using-pytorch3d-ef9de72483f8
+
+## Dev Setup
 
 - [Using uv with Jupyter from VSCode](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code)
 - [Jupytext](https://jupytext.org/)

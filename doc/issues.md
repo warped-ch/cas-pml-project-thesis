@@ -25,3 +25,25 @@ import open3d as o3d
 
 renderer = o3d.visualization.rendering.OffscreenRenderer(512, 512)
 ```
+
+### PyTorch3D
+
+#### miropsota - Torch Packages Compiler Repository
+
+- https://github.com/MiroPsota/torch_packages_builder
+
+### uv
+
+#### Python versions
+
+- https://docs.astral.sh/uv/concepts/python-versions/
+
+- list installed python versions
+    ```
+    uv python list
+    ```
+
+- uninstall specific python version
+    ```
+    uv python uninstall cpython-3.12.13-windows-x86_64-none
+    ```

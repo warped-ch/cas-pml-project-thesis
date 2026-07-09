@@ -5,22 +5,39 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.3
+#       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: project-thesis (3.12.13)
+#     display_name: project-thesis (3.12.9)
 #     language: python
 #     name: python3
 # ---
 
 # %%
+import math
 import matplotlib.pyplot as plt
-import open3d as o3d
+import numpy as np
 import random
+import torch
 import yaml
 from pathlib import Path
+from pytorch3d.io import IO
+from pytorch3d.renderer import (
+    DirectionalLights,
+    look_at_view_transform,
+    camera_position_from_spherical_angles,
+    FoVPerspectiveCameras,
+    RasterizationSettings,
+    MeshRasterizer,
+    MeshRenderer,
+    SoftPhongShader,
+    TexturesVertex,
+)
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # %%
 # load config file
@@ -28,15 +45,30 @@ print(f"root_path={root_path}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-
 # %%
-def load_mesh(obj_file):
-    mesh = o3d.io.read_triangle_mesh(obj_file)
-    if not mesh.has_vertex_normals():
-        mesh.compute_vertex_normals()
-    if not mesh.has_triangle_normals():
-        mesh.compute_triangle_normals()
-    return mesh
+import pyvista as pv
+
+pv.set_jupyter_backend('trame')
+
+def plot_mesh(mesh):
+    # Extract vertices and faces to CPU NumPy arrays
+    # PyTorch3D stores faces as a tensor of shape (F, 3)
+    verts = mesh.verts_packed().detach().cpu().numpy()
+    faces = mesh.faces_packed().detach().cpu().numpy()
+
+    # Format faces for PyVista
+    # PyVista requires a flat array where each polygon is prefixed by its number of padding vertices: [num_verts, v1, v2, v3, ...]
+    num_faces = faces.shape[0]
+    padding = torch.full((num_faces, 1), 3).numpy()  # Column of 3s since they are triangles
+    faces_pv = torch.hstack([torch.tensor(padding), torch.tensor(faces)]).ravel().numpy()
+
+    # Create the PyVista PolyData object
+    pv_mesh = pv.PolyData(verts, faces_pv)
+
+    # Render the mesh inside the notebook
+    plotter = pv.Plotter()
+    plotter.add_mesh(pv_mesh, color="lightblue")
+    plotter.show()
 
 
 # %%
@@ -51,49 +83,77 @@ obj_files = list(dataset_path.rglob("*.obj"))
 obj_file = random.choice(obj_files)
 print(f"obj_file={obj_file}")
 
-mesh = load_mesh(obj_file)
+mesh = IO().load_mesh(obj_file, device=device)
+if mesh.textures is None:
+    num_vertices = mesh.verts_packed().shape[0]
+    # define a default color for each vertex: [1, num_vertices, 3] -> batch size 1
+    verts_features = torch.ones((1, num_vertices, 3), dtype=torch.float32, device=device) * 0.75
+    mesh.textures = TexturesVertex(verts_features=verts_features)
 
 # align mesh to origin
-mesh.translate(-mesh.get_center())
+mesh_center = mesh.verts_packed().mean(dim=0)
+mesh = mesh.offset_verts(-mesh_center)
 
-origin_axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10.0, origin=[0, 0, 0])
+plot_mesh(mesh)
 
-# TODO: crashes Jupyter kernel...
-# import open3d.web_visualizer as webvis
-# webvis.draw([mesh, origin_axis], width=1280, height=1024)
-o3d.visualization.draw_geometries(
-    [mesh, origin_axis],
-    window_name=f"{obj_file.name}",
-    width=1280,
-    height=1024,
-    mesh_show_back_face=True,
+# %%
+# render 2D projection
+
+elevation = np.array([0, 60, 45, 45, 315, 315])
+azimuth = np.array([0, 0, 45, 315, 45, 315])
+
+R, T = look_at_view_transform(
+    dist=80,
+    elev=elevation,
+    azim=azimuth,
+    device=device
 )
 
-# https://stackoverflow.com/questions/70273002/project-3d-mesh-on-2d-image-using-camera-intrinsic-matrix
-img_width = 512
-img_height = 512
-# RuntimeError: [Open3D Error] (__cdecl open3d::visualization::rendering::EngineInstance::EngineInstance(void)) D:\a\Open3D\Open3D\cpp\open3d\visualization\rendering\filament\FilamentEngine.cpp:104: EGL Headless is not supported on this platform.
-# https://github.com/isl-org/Open3D/issues/5307
-renderer = o3d.visualization.rendering.OffscreenRenderer(img_width, img_height)
-renderer.scene.set_background([0.0, 0.0, 0.0, 1.0]) # [r, g, b, a]
+cameras = FoVPerspectiveCameras(
+    znear=0.1,
+    zfar=100.0,
+    fov=60.0,
+    R=R,
+    T=T,
+    device=device
+)
 
-print(f"obj_file.name={obj_file.name}")
-renderer.scene.add_geometry(obj_file.name, mesh)
+raster_settings = RasterizationSettings(
+    image_size=(512, 512)
+)
 
-aspect_ratio = img_width / img_height
-fov = 60.0 # [deg]
-fov_type = o3d.visualization.rendering.Camera.FovType.Vertical
-near_plane = 0.1
-far_plane = 100.0
-renderer.scene.camera.set_projection(fov, aspect_ratio, near_plane, far_plane, fov_type)
+light_dir = camera_position_from_spherical_angles(distance=1.0, elevation=elevation, azimuth=azimuth, device=device)
+print(f"light_dir={light_dir}")
 
-center_pos = [0, 0, 0]
-eye_pos = [0, 10, 0]
-up_pos = [0, 1, 0]
-renderer.scene.camera.look_at(center_pos, eye_pos, up_pos)
+lights = DirectionalLights(
+    direction=light_dir,
+    ambient_color=((0.5, 0.5, 0.5),),  
+    diffuse_color=((0.5, 0.5, 0.5),),  
+    specular_color=((0.2, 0.2, 0.2),), # reduced specular highlight to keep tooth boundaries matte
+    device=device
+)
 
-img = renderer.render_to_image()
-plt.figure(figsize=(8, 8))
-plt.imshow(img)
-plt.axis("off")
+renderer = MeshRenderer(
+    rasterizer=MeshRasterizer(
+        cameras=cameras, 
+        raster_settings=raster_settings
+    ),
+    shader=SoftPhongShader(
+        cameras=cameras,
+        lights=lights,
+        device=device
+    )
+)
+
+meshes = mesh.extend(elevation.size)
+images = renderer(meshes)
+
+cols = min(2, elevation.size)
+rows = math.ceil(elevation.size / cols)
+f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
+for i, ax in enumerate(axarr.flat):
+    if i < images.shape[0]:
+        ax.imshow(images[i].detach().cpu().numpy())
+        ax.set_title(f"elevation={elevation[i]}, azimuth={azimuth[i]}") 
+plt.tight_layout()
 plt.show()
