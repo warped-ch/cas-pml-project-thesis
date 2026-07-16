@@ -7,7 +7,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: project-thesis (3.12.13)
+#     display_name: project-thesis (3.12.9)
 #     language: python
 #     name: python3
 # ---
@@ -66,9 +66,10 @@ def get_missing_teeth(vertex_labels, vertex_label_file):
 # %%
 def load_sample(scan_file_path):
     vertex_label_file = scan_file_path.with_suffix(".json")
+    # dataset contains samples from 3DTeethLand_challenge, skip those (no vertex label files available)
     if not vertex_label_file.exists():
         print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
-        vertex_label_file = None
+        return None
 
     json_data = {}
     if vertex_label_file:
@@ -107,6 +108,9 @@ with ThreadPoolExecutor() as executor:
             desc="Creating DataFrame",
         )
     )
+
+# Remove None values from the list
+data = [d for d in data if d is not None]
 
 # %%
 # create the DataFrame
@@ -154,3 +158,34 @@ plt.xticks(range(11, 49), rotation=45)
 plt.show()
 
 df.groupby("jaw_type")["missing_teeth"].describe()
+
+# %% [markdown]
+# ## Potential dataset inconsistencies
+
+# %%
+# only lower or upper jaw in dataset
+
+# get the set of unique patient IDs for each jaw type
+ids_lower = set(df[df['jaw_type'] == 'lower']['id_patient'])
+ids_upper = set(df[df['jaw_type'] == 'upper']['id_patient'])
+print(f"ids_lower={len(ids_lower)}, ids_upper={len(ids_upper)}")
+
+# identify the "missing" cases (only upper or lower jaw present in the dataset)
+missing_ids_upper = list(ids_lower - ids_upper)
+missing_ids_lower = list(ids_upper - ids_lower)
+print(f"missing_ids_upper={missing_ids_upper}")
+print(f"missing_ids_lower={missing_ids_lower}")
+
+# %%
+# check if obj mesh already has color/material attributes
+
+mesh_has_material = 0
+
+for obj_file in tqdm(scan_files, desc="Checking mesh for material"):
+    with open(obj_file, 'r', encoding='utf-8') as file:
+        content = file.read()
+        if "mtl" in content.lower():
+            print(f"Mesh has material: {obj_file}")
+            mesh_has_material += 1
+
+print(f"mesh_has_material={mesh_has_material}")
