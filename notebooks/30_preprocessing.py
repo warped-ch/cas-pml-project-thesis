@@ -13,6 +13,7 @@
 # ---
 
 # %%
+import json
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -169,7 +170,59 @@ for i, ax in enumerate(axarr.flat):
         ax.imshow(img_np)
         ax.set_title(f"elevation={elev}, azimuth={azim}")
 
-        plt.imsave(temp_out_path / f"view_2d_evev{elev}_azim{azim}.png", img_np)
+        plt.imsave(temp_out_path / f"view_2d_elev{elev}_azim{azim}.png", img_np)
+
+plt.tight_layout()
+plt.show()
+
+# %%
+# render 2D projection label masks
+
+json_file = obj_file.with_suffix(".json")
+print(f"obj_file={obj_file}")
+with open(json_file, "r") as json_file:
+    json_data = json.load(json_file)
+
+vertex_labels = np.array(json_data["labels"], dtype=np.uint8)
+vertex_labels_tensor = torch.from_numpy(vertex_labels).to(
+    device=device, 
+    dtype=torch.float32
+).unsqueeze(1)
+
+num_vertices = mesh.verts_packed().shape[0]
+# verts_labels_packed = torch.ones_like(mesh.verts_packed()) * vertex_labels_tensor
+verts_labels_packed = torch.ones((1, num_vertices, 3), dtype=torch.float32, device=device) * vertex_labels_tensor
+print(f"verts_labels_packed={verts_labels_packed}")
+# normalize the labels so they become valid RGB values [0.0, 1.0]
+max_val = verts_labels_packed.max()
+if max_val > 1.0:
+    verts_labels_packed = verts_labels_packed / max_val
+print(f"verts_labels_packed={verts_labels_packed}")
+
+# verts_labels_padded = offset_verts_to_padded(mesh, verts_labels_packed)
+mesh.textures = TexturesVertex(verts_features=verts_labels_packed)
+
+plot_mesh(mesh)
+
+meshes = mesh.extend(views.shape[0])
+images = renderer(meshes)
+
+cols = min(3, views.shape[0])
+rows = math.ceil(views.shape[0] / cols)
+f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
+for i, ax in enumerate(axarr.flat):
+    if i < images.shape[0]:
+        # slice [..., :3] to remove alpha channel
+        img_np = images[i].detach().cpu().numpy()[..., :3]
+
+        elev = views[i, 0].item()
+        azim = views[i, 1].item()
+
+        ax.imshow(img_np)
+        ax.set_title(f"elevation={elev}, azimuth={azim}")
+
+        # TODO: ValueError: Floating point image RGB values must be in the [0,1] range
+        # plt.imsave(temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.png", img_np)
 
 plt.tight_layout()
 plt.show()
