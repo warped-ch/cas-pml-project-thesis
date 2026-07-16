@@ -75,7 +75,7 @@ def plot_mesh(mesh):
 # %%
 # load a mesh sample
 
-dataset_path = root_path / config.get("dataset_path")
+dataset_path = root_path / config["dataset_path"]
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
@@ -101,22 +101,10 @@ plot_mesh(mesh)
 # render 2D projection
 
 # each row in views is [elevation, azimuth]
-views = np.array([
-    [0, 0], # top down
-    [-90, 0], # front center
-    [90, 0], # back center
-    [-60, 0], # top down front diagonal center
-    [60, 0], # top down back diagonal center
-    [0, -45], # top down front diagonal left
-    [0, 45], # top down front diagonal right
-    [60, -45], # bottom up back diagonal left
-    [60, 45], # bottom up back diagonal right
-    [0, -90], # left side
-    [0, 90], # right side
-])
+views = np.array(config["2d_projection"]["views"])
 
 R, T = look_at_view_transform(
-    dist=80,
+    dist=config["2d_projection"]["distance"],
     elev=views[:, 0],
     azim=views[:, 1],
     device=device
@@ -125,14 +113,14 @@ R, T = look_at_view_transform(
 cameras = FoVPerspectiveCameras(
     znear=0.1,
     zfar=100.0,
-    fov=60.0,
+    fov=config["2d_projection"]["fov"],
     R=R,
     T=T,
     device=device
 )
 
 raster_settings = RasterizationSettings(
-    image_size=(512, 512)
+    image_size=config["2d_projection"]["image_size"]
 )
 
 light_dir = camera_position_from_spherical_angles(distance=1.0, elevation=views[:, 0], azimuth=views[:, 1], device=device)

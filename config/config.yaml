@@ -1,1 +1,17 @@
 dataset_path: "data/Teeth3DS+"
+2d_projection:
+  image_size: [512, 512]
+  distance: 80
+  fov: 60
+  views: # each view is [elevation, azimuth]
+    - [0, 0]    # top down
+    - [-90, 0]  # front center
+    - [90, 0]   # back center
+    - [-60, 0]  # top down front diagonal center
+    - [60, 0]   # top down back diagonal center
+    - [0, -45]  # top down front diagonal left
+    - [0, 45]   # top down front diagonal right
+    - [60, -45] # bottom up back diagonal left
+    - [60, 45]  # bottom up back diagonal right
+    - [0, -90]  # left side
+    - [0, 90]   # right side
