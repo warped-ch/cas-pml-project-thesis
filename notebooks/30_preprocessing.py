@@ -194,49 +194,56 @@ mask_raster_settings = RasterizationSettings(
     blur_radius=0.0,
     faces_per_pixel=1,
 )
-# TODO: consider all cameras
-mask_rasterizer = MeshRasterizer(cameras=cameras[0], raster_settings=mask_raster_settings)
+mask_rasterizer = MeshRasterizer(cameras=cameras, raster_settings=mask_raster_settings)
 
 # get fragments (pix_to_face contains the face index for each pixel)
-fragments = mask_rasterizer(mesh)
-# Shape: (H, W) -> values are face indices, -1 means background
-pix_to_face = fragments.pix_to_face[0, ..., 0]
+fragments = mask_rasterizer(meshes)
+# Shape: (N, H, W) -> values are face indices, -1 means background
+pix_to_face = fragments.pix_to_face[..., 0]
 
-# map faces to vertex labels
-# faces shape: (F, 3) | vertex_labels shape: (V,)
+# map faces to vertex labels (identical for all view since it's the same mesh)
+# faces shape: (F, 3) | vertex_labels_tensor shape: (V,)
 faces = mesh.faces_packed()
-vertex_labels = torch.from_numpy(vertex_labels).to(mesh.device)
+vertex_labels_tensor = torch.from_numpy(vertex_labels).to(mesh.device)
 
 # get the labels of the 3 vertices for every face -> Shape: (F, 3)
-face_vert_labels = vertex_labels[faces]
+face_vert_labels = vertex_labels_tensor[faces]
 
 # TODO, which method?
 # define face label by taking the first vertex
 face_labels = face_vert_labels[:, 0] # Shape: (F,)
 # define face label by majority vote (or taking the first vertex)
 #face_labels = torch.mode(face_vert_labels, dim=1).values # Shape: (F,)
+face_labels = face_labels.repeat(views.shape[0])
 
 # add a background label
 background_label = 255
 face_labels_with_bg = torch.cat([face_labels, torch.tensor([background_label], device=mesh.device)])
 
 # generate the final 2D segmentation mask
-segmentation_mask = face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
+segmentation_masks = face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
 
 # visualize segmentation mask
 
-vis_mask = segmentation_mask.astype(float)
-vis_mask[vis_mask == background_label] = np.nan  # hide background (remains white/transparent)
-
 cmap = plt.colormaps['viridis'].with_extremes(bad="white")
 
-plt.figure(figsize=(8, 8))
-plt.title("segmentation mask")
-im = plt.imshow(vis_mask, cmap=cmap, interpolation="nearest")
-plt.colorbar(im, label="Class ID", ticks=np.unique(segmentation_mask))
-plt.axis("off")
+cols = min(3, views.shape[0])
+rows = math.ceil(views.shape[0] / cols)
+f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
+for i, ax in enumerate(axarr.flat):
+    if i < images.shape[0]:
+        segmentation_mask = segmentation_masks[i].astype(float)
+        segmentation_mask[segmentation_mask == background_label] = np.nan  # hide background (remains white/transparent)
+
+        elev = views[i, 0].item()
+        azim = views[i, 1].item()
+
+        ax.imshow(segmentation_mask, cmap=cmap, interpolation="nearest")
+        ax.set_title(f"elevation={elev}, azimuth={azim}")
+
+        #plt.imsave(temp_out_path / f"view_2d_elev{elev}_azim{azim}.png", segmentation_masks[i])
+        img = Image.fromarray(segmentation_masks[i])
+        img.save(temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.png")
+
 plt.tight_layout()
 plt.show()
-
-img = Image.fromarray(segmentation_mask)
-img.save(temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.png")
