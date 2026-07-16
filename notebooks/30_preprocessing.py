@@ -21,6 +21,7 @@ import random
 import torch
 import yaml
 from pathlib import Path
+from PIL import Image
 from pytorch3d.io import IO
 from pytorch3d.renderer import (
     BlendParams,
@@ -176,7 +177,10 @@ plt.tight_layout()
 plt.show()
 
 # %%
-# render 2D projection label masks
+# render 2D projection label masks (face index rasterization)
+
+# Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly 
+# which face index is visible at every pixel. It then maps that face back to its vertex labels.
 
 json_file = obj_file.with_suffix(".json")
 print(f"obj_file={obj_file}")
@@ -184,45 +188,55 @@ with open(json_file, "r") as json_file:
     json_data = json.load(json_file)
 
 vertex_labels = np.array(json_data["labels"], dtype=np.uint8)
-vertex_labels_tensor = torch.from_numpy(vertex_labels).to(
-    device=device, 
-    dtype=torch.float32
-).unsqueeze(1)
 
-num_vertices = mesh.verts_packed().shape[0]
-# verts_labels_packed = torch.ones_like(mesh.verts_packed()) * vertex_labels_tensor
-verts_labels_packed = torch.ones((1, num_vertices, 3), dtype=torch.float32, device=device) * vertex_labels_tensor
-print(f"verts_labels_packed={verts_labels_packed}")
-# normalize the labels so they become valid RGB values [0.0, 1.0]
-max_val = verts_labels_packed.max()
-if max_val > 1.0:
-    verts_labels_packed = verts_labels_packed / max_val
-print(f"verts_labels_packed={verts_labels_packed}")
+mask_raster_settings = RasterizationSettings(
+    image_size=config["2d_projection"]["image_size"],
+    blur_radius=0.0,
+    faces_per_pixel=1,
+)
+# TODO: consider all cameras
+mask_rasterizer = MeshRasterizer(cameras=cameras[0], raster_settings=mask_raster_settings)
 
-# verts_labels_padded = offset_verts_to_padded(mesh, verts_labels_packed)
-mesh.textures = TexturesVertex(verts_features=verts_labels_packed)
+# get fragments (pix_to_face contains the face index for each pixel)
+fragments = mask_rasterizer(mesh)
+# Shape: (H, W) -> values are face indices, -1 means background
+pix_to_face = fragments.pix_to_face[0, ..., 0]
 
-plot_mesh(mesh)
+# map faces to vertex labels
+# faces shape: (F, 3) | vertex_labels shape: (V,)
+faces = mesh.faces_packed()
+vertex_labels = torch.from_numpy(vertex_labels).to(mesh.device)
 
-meshes = mesh.extend(views.shape[0])
-images = renderer(meshes)
+# get the labels of the 3 vertices for every face -> Shape: (F, 3)
+face_vert_labels = vertex_labels[faces]
 
-cols = min(3, views.shape[0])
-rows = math.ceil(views.shape[0] / cols)
-f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
-for i, ax in enumerate(axarr.flat):
-    if i < images.shape[0]:
-        # slice [..., :3] to remove alpha channel
-        img_np = images[i].detach().cpu().numpy()[..., :3]
+# TODO, which method?
+# define face label by taking the first vertex
+face_labels = face_vert_labels[:, 0] # Shape: (F,)
+# define face label by majority vote (or taking the first vertex)
+#face_labels = torch.mode(face_vert_labels, dim=1).values # Shape: (F,)
 
-        elev = views[i, 0].item()
-        azim = views[i, 1].item()
+# add a background label
+background_label = 255
+face_labels_with_bg = torch.cat([face_labels, torch.tensor([background_label], device=mesh.device)])
 
-        ax.imshow(img_np)
-        ax.set_title(f"elevation={elev}, azimuth={azim}")
+# generate the final 2D segmentation mask
+segmentation_mask = face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
 
-        # TODO: ValueError: Floating point image RGB values must be in the [0,1] range
-        # plt.imsave(temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.png", img_np)
+# visualize segmentation mask
 
+vis_mask = segmentation_mask.astype(float)
+vis_mask[vis_mask == background_label] = np.nan  # hide background (remains white/transparent)
+
+cmap = plt.colormaps['viridis'].with_extremes(bad="white")
+
+plt.figure(figsize=(8, 8))
+plt.title("segmentation mask")
+im = plt.imshow(vis_mask, cmap=cmap, interpolation="nearest")
+plt.colorbar(im, label="Class ID", ticks=np.unique(segmentation_mask))
+plt.axis("off")
 plt.tight_layout()
 plt.show()
+
+img = Image.fromarray(segmentation_mask)
+img.save(temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.png")
