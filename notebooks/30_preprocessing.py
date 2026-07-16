@@ -53,7 +53,7 @@ import pyvista as pv
 
 pv.set_jupyter_backend('trame')
 
-def plot_mesh(mesh):
+def plot_mesh(mesh, vertex_labels=None):
     # Extract vertices and faces to CPU NumPy arrays
     # PyTorch3D stores faces as a tensor of shape (F, 3)
     verts = mesh.verts_packed().detach().cpu().numpy()
@@ -68,9 +68,23 @@ def plot_mesh(mesh):
     # Create the PyVista PolyData object
     pv_mesh = pv.PolyData(verts, faces_pv)
 
+    if vertex_labels is not None:
+        pv_mesh.point_data["labels"] = vertex_labels
+        pv_mesh.color_labels(
+            colors="viridis",
+            scalars="labels",
+            inplace=True
+        )
+
     # Render the mesh inside the notebook
     plotter = pv.Plotter()
-    plotter.add_mesh(pv_mesh, color="lightblue")
+    plotter.add_mesh(
+        pv_mesh,
+        color="lightgrey",
+        scalars="labels" if vertex_labels is not None else None,
+        show_scalar_bar=False,
+        smooth_shading=True
+    )
     plotter.show()
 
 
@@ -81,23 +95,26 @@ dataset_path = root_path / config["dataset_path"]
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
+# TODO: use train/test/val splits instead
 obj_files = list(dataset_path.rglob("*.obj"))
 
 obj_file = random.choice(obj_files)
 print(f"obj_file={obj_file}")
 
 mesh = IO().load_mesh(obj_file, device=device)
-if mesh.textures is None:
-    num_vertices = mesh.verts_packed().shape[0]
-    # define a default color for each vertex: [1, num_vertices, 3] -> batch size 1
-    verts_features = torch.ones((1, num_vertices, 3), dtype=torch.float32, device=device) * 0.75
-    mesh.textures = TexturesVertex(verts_features=verts_features)
 
 # align mesh to origin
 mesh_center = mesh.verts_packed().mean(dim=0)
 mesh = mesh.offset_verts(-mesh_center)
 
-plot_mesh(mesh)
+# load the vertex labels
+json_file = obj_file.with_suffix(".json")
+print(f"json_file={json_file}")
+with open(json_file, "r") as json_file:
+    json_data = json.load(json_file)
+vertex_labels = np.array(json_data["labels"], dtype=np.uint8)
+
+plot_mesh(mesh, vertex_labels)
 
 # %%
 # render 2D projection
@@ -150,6 +167,11 @@ renderer = MeshRenderer(
     )
 )
 
+# define a default color for each vertex
+num_vertices = mesh.verts_packed().shape[0]
+verts_features = torch.ones((1, num_vertices, 3), dtype=torch.float32, device=device) * 0.75
+mesh.textures = TexturesVertex(verts_features=verts_features)
+
 meshes = mesh.extend(views.shape[0])
 images = renderer(meshes)
 
@@ -181,13 +203,6 @@ plt.show()
 
 # Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly 
 # which face index is visible at every pixel. It then maps that face back to its vertex labels.
-
-json_file = obj_file.with_suffix(".json")
-print(f"obj_file={obj_file}")
-with open(json_file, "r") as json_file:
-    json_data = json.load(json_file)
-
-vertex_labels = np.array(json_data["labels"], dtype=np.uint8)
 
 mask_raster_settings = RasterizationSettings(
     image_size=config["2d_projection"]["image_size"],
