@@ -262,3 +262,39 @@ for i, ax in enumerate(axarr.flat):
 
 plt.tight_layout()
 plt.show()
+
+# %%
+# Convert mask images to YOLO annotations
+
+import supervision as sv
+
+for i, segmentation_mask in enumerate(segmentation_masks):
+    unique_values = np.unique(segmentation_mask)
+    class_ids = [v for v in unique_values if v != background_label]
+
+    mask_height, mask_width = segmentation_mask.shape[:2]
+    scale_vector = np.array([mask_width, mask_height], dtype=np.float32)
+
+    yolo_annotations = []
+
+    # generate a boolean mask for each class_id
+    for class_id in class_ids:
+        binary_mask = (segmentation_mask == class_id)
+        if sv.contains_holes(binary_mask):
+            print(f"⚠️ binary_mask for class {class_id} contains holes!")
+
+        polygons = sv.mask_to_polygons(binary_mask)
+        for polygon in polygons:
+            # normalize and clip all points
+            normalized_poly = np.clip(polygon / scale_vector, 0.0, 1.0)
+            # flatten the (N, 2) array into a 1D array: [x1, y1, x2, y2, ...]
+            flattened_poly = normalized_poly.ravel()
+            # string serialization
+            coords_str = " ".join(f"{coord:.6f}" for coord in flattened_poly)
+            yolo_annotations.append(f"{class_id} {coords_str}")
+
+    elev = views[i, 0].item()
+    azim = views[i, 1].item()
+    yolo_txt = temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.txt"
+    with open(yolo_txt, "w") as f:
+        f.write("\n".join(yolo_annotations))

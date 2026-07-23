@@ -18,6 +18,7 @@ dependencies = [
   "tqdm>=4.68.2",
   "pyyaml>=6.0.3",
   "pyvista[jupyter]>=0.48.4",
+  "supervision>=0.29.1",
 ]
 
 [dependency-groups]
