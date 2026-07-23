@@ -174,6 +174,8 @@ mesh.textures = TexturesVertex(verts_features=verts_features)
 
 meshes = mesh.extend(views.shape[0])
 images = renderer(meshes)
+# bring the entire batch to CPU, remove alpha channel, and convert to NumPy
+images = images[..., :3].detach().cpu().numpy()
 
 temp_out_path = dataset_path.parent / "temp" / obj_file.stem
 print(f"temp_out_path={temp_out_path}")
@@ -184,16 +186,15 @@ rows = math.ceil(views.shape[0] / cols)
 f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
 for i, ax in enumerate(axarr.flat):
     if i < images.shape[0]:
-        # slice [..., :3] to remove alpha channel
-        img_np = images[i].detach().cpu().numpy()[..., :3]
+        segmentation_mask = images[i]
 
         elev = views[i, 0].item()
         azim = views[i, 1].item()
 
-        ax.imshow(img_np)
+        ax.imshow(segmentation_mask)
         ax.set_title(f"elevation={elev}, azimuth={azim}")
 
-        plt.imsave(temp_out_path / f"view_2d_elev{elev}_azim{azim}.png", img_np)
+        plt.imsave(temp_out_path / f"view_elev{elev}_azim{azim}.png", segmentation_mask)
 
 plt.tight_layout()
 plt.show()
@@ -256,9 +257,9 @@ for i, ax in enumerate(axarr.flat):
         ax.imshow(segmentation_mask, cmap=cmap, interpolation="nearest")
         ax.set_title(f"elevation={elev}, azimuth={azim}")
 
-        #plt.imsave(temp_out_path / f"view_2d_elev{elev}_azim{azim}.png", segmentation_masks[i])
+        #plt.imsave(temp_out_path / f"view_elev{elev}_azim{azim}.png", segmentation_masks[i])
         img = Image.fromarray(segmentation_masks[i])
-        img.save(temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.png")
+        img.save(temp_out_path / f"mask_elev{elev}_azim{azim}.png")
 
 plt.tight_layout()
 plt.show()
@@ -295,6 +296,93 @@ for i, segmentation_mask in enumerate(segmentation_masks):
 
     elev = views[i, 0].item()
     azim = views[i, 1].item()
-    yolo_txt = temp_out_path / f"view_2d_mask_elev{elev}_azim{azim}.txt"
+    yolo_txt = temp_out_path / f"mask_elev{elev}_azim{azim}.txt"
     with open(yolo_txt, "w") as f:
         f.write("\n".join(yolo_annotations))
+
+# %%
+# Roundtrip: load the yolo annotations and visualize on segmentation masks
+
+import cv2
+
+annotated_images = []
+for i, view in enumerate(views):
+    segmentation_mask = segmentation_masks[i]
+
+    elev = view[0]
+    azim = view[1]
+    yolo_txt = temp_out_path / f"mask_elev{elev}_azim{azim}.txt"
+    #print(f"yolo_txt={yolo_txt}")
+
+    class_ids = []
+    polygons = []
+
+    with open(yolo_txt, "r") as f:
+        lines = f.readlines()
+        
+    for line in lines:
+        parts = line.strip().split()
+        if not parts:
+            continue
+        
+        class_id = int(parts[0])
+        poly_coords = np.array([float(x) for x in parts[1:]], dtype=np.float32).reshape(-1, 2)
+        
+        # scale coordinates back to pixel space
+        img_height, img_width = segmentation_mask.shape[:2]
+        scale_vector = np.array([img_width, img_height], dtype=np.float32)
+        poly_coords = poly_coords * scale_vector
+
+        class_ids.append(class_id)
+        polygons.append(poly_coords.astype(np.int32))
+
+    masks = [sv.polygon_to_mask(polygon, (img_width, img_height)) for polygon in polygons]
+    stacked_masks = np.stack(masks, axis=0).astype(bool) # stack masks into a 3D boolean array of shape (N, H, W)
+
+    detections = sv.Detections(
+        xyxy=sv.mask_to_xyxy(stacked_masks),
+        mask=stacked_masks,
+        class_id=np.array(class_ids, dtype=np.int32)
+    )
+
+    # TODO: static color palette, otherwise colors might change based on which labels are present...
+    # custom static viridis palette for fdi labels and gum
+    color_count = len(set(class_ids))
+    print(f"color_count={color_count}")
+    color = sv.ColorPalette.from_matplotlib("viridis", color_count)
+
+    print(f"class_ids={set(class_ids)}")
+    print(f"color={color}")
+
+    mask_annotator = sv.MaskAnnotator(
+        color=color,
+        # TODO: setting opacity too high somehow leads to one tooth being invisible and labeled as gum... ?
+        # opacity=1.0,
+    )
+
+    annotated_image = mask_annotator.annotate(
+        scene=cv2.cvtColor(segmentation_mask, cv2.COLOR_GRAY2RGB), 
+        detections=detections
+    )
+    annotated_images.append(annotated_image)
+
+cols = min(3, views.shape[0])
+rows = math.ceil(views.shape[0] / cols)
+f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
+for i, ax in enumerate(axarr.flat):
+    if i < len(annotated_images):
+        annotated_image = annotated_images[i]
+
+        elev = views[i, 0].item()
+        azim = views[i, 1].item()
+
+        ax.imshow(annotated_image)
+        ax.set_title(f"elevation={elev}, azimuth={azim}")
+
+        plt.imsave(temp_out_path / f"mask_annotated_elev{elev}_azim{azim}.png", annotated_image)
+
+plt.tight_layout()
+plt.show()
+
+# TODO: annotate view images as well
+
