@@ -282,6 +282,8 @@ for i, segmentation_mask in enumerate(segmentation_masks):
     for class_id in class_ids:
         binary_mask = (segmentation_mask == class_id)
         if sv.contains_holes(binary_mask):
+            # TODO: handle holes (important especially for top down view, otherwise "tooth holes" will be filled)
+            # https://github.com/roboflow/supervision/issues/574
             print(f"⚠️ binary_mask for class {class_id} contains holes!")
 
         polygons = sv.mask_to_polygons(binary_mask)
@@ -345,6 +347,33 @@ for i, view in enumerate(views):
         class_id=np.array(class_ids, dtype=np.int32)
     )
 
+    ### debug start
+
+    unique_classes = np.unique(detections.class_id)
+
+    for cid in unique_classes:
+        # Create a boolean mask of where the current class appears
+        indices = (detections.class_id == cid)
+        
+        # Create a new Detections object containing only those instances
+        class_detections = sv.Detections(
+            xyxy=detections.xyxy[indices],
+            mask=detections.mask[indices],
+            class_id=detections.class_id[indices]
+        )
+
+        class_image = sv.MaskAnnotator().annotate(
+            scene=cv2.cvtColor(segmentation_mask, cv2.COLOR_GRAY2RGB), 
+            detections=class_detections
+        )
+
+        print(f"cid={cid}")
+        plt.imshow(class_image)
+        plt.axis('off')
+        plt.show()
+    
+    ### debug end
+
     # TODO: static color palette, otherwise colors might change based on which labels are present...
     # custom static viridis palette for fdi labels and gum
     color_count = len(set(class_ids))
@@ -357,6 +386,7 @@ for i, view in enumerate(views):
     mask_annotator = sv.MaskAnnotator(
         color=color,
         # TODO: setting opacity too high somehow leads to one tooth being invisible and labeled as gum... ?
+        # might be related to blob hole handling
         # opacity=1.0,
     )
 
