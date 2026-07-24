@@ -22,7 +22,6 @@ import torch
 import sys
 import yaml
 from pathlib import Path
-from pytorch3d.io import IO
 from pytorch3d.renderer import (
     BlendParams,
     DirectionalLights,
@@ -103,12 +102,7 @@ obj_files = list(dataset_path.rglob("*.obj"))
 
 obj_file = random.choice(obj_files)
 print(f"obj_file={obj_file}")
-
-mesh = IO().load_mesh(obj_file, device=device)
-
-# align mesh to origin
-mesh_center = mesh.verts_packed().mean(dim=0)
-mesh = mesh.offset_verts(-mesh_center)
+mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
 
 # load the vertex labels
 json_file = obj_file.with_suffix(".json")
