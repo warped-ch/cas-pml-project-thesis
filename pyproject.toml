@@ -19,6 +19,7 @@ dependencies = [
   "pyyaml>=6.0.3",
   "pyvista[jupyter]>=0.48.4",
   "supervision>=0.29.1",
+  "opencv-python>=5.0.0.93",
 ]
 
 [dependency-groups]

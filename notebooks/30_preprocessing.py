@@ -13,6 +13,7 @@
 # ---
 
 # %%
+import cv2
 import json
 import math
 import matplotlib.pyplot as plt
@@ -21,7 +22,6 @@ import random
 import torch
 import yaml
 from pathlib import Path
-from PIL import Image
 from pytorch3d.io import IO
 from pytorch3d.renderer import (
     BlendParams,
@@ -238,6 +238,7 @@ face_labels_with_bg = torch.cat([face_labels, torch.tensor([background_label], d
 
 # generate the final 2D segmentation mask
 segmentation_masks = face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
+print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
 # visualize segmentation mask
 
@@ -257,9 +258,7 @@ for i, ax in enumerate(axarr.flat):
         ax.imshow(segmentation_mask, cmap=cmap, interpolation="nearest")
         ax.set_title(f"elevation={elev}, azimuth={azim}")
 
-        #plt.imsave(temp_out_path / f"view_elev{elev}_azim{azim}.png", segmentation_masks[i])
-        img = Image.fromarray(segmentation_masks[i])
-        img.save(temp_out_path / f"mask_elev{elev}_azim{azim}.png")
+        cv2.imwrite(temp_out_path / f"mask_elev{elev}_azim{azim}.png", segmentation_masks[i])
 
 plt.tight_layout()
 plt.show()
