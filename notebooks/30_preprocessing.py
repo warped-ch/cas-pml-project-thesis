@@ -13,30 +13,23 @@
 # ---
 
 # %%
-import cv2
 import math
+import random
+import sys
+from pathlib import Path
+
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import random
+import pyvista as pv
+
+pv.set_jupyter_backend('trame')
+import supervision as sv
 import torch
-import sys
 import yaml
-from pathlib import Path
-from pytorch3d.renderer import (
-    BlendParams,
-    DirectionalLights,
-    look_at_view_transform,
-    camera_position_from_spherical_angles,
-    FoVPerspectiveCameras,
-    RasterizationSettings,
-    MeshRasterizer,
-    MeshRenderer,
-    SoftPhongShader,
-    TexturesVertex,
-)
 
 sys.path.append(str(Path.cwd().parent))
-from src import file_io
+from src import file_io, preprocessing
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -50,11 +43,8 @@ print(f"Using device: {device}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
+
 # %%
-import pyvista as pv
-
-pv.set_jupyter_backend('trame')
-
 def plot_mesh(mesh, vertex_labels=None):
     # Extract vertices and faces to CPU NumPy arrays
     # PyTorch3D stores faces as a tensor of shape (F, 3)
@@ -114,63 +104,12 @@ plot_mesh(mesh, vertex_labels)
 # %%
 # render 2D projection
 
+preprocessing = preprocessing.Preprocessing(config, device)
+
+images = preprocessing.render_2d_views(mesh)
+
 # each row in views is [elevation, azimuth]
 views = np.array(config["2d_projection"]["views"])
-
-R, T = look_at_view_transform(
-    dist=config["2d_projection"]["distance"],
-    elev=views[:, 0],
-    azim=views[:, 1],
-    device=device
-)
-
-cameras = FoVPerspectiveCameras(
-    znear=0.1,
-    zfar=100.0,
-    fov=config["2d_projection"]["fov"],
-    R=R,
-    T=T,
-    device=device
-)
-
-raster_settings = RasterizationSettings(
-    image_size=config["2d_projection"]["image_size"]
-)
-
-light_dir = camera_position_from_spherical_angles(distance=1.0, elevation=views[:, 0], azimuth=views[:, 1], device=device)
-
-lights = DirectionalLights(
-    direction=light_dir,
-    ambient_color=((0.5, 0.5, 0.5),),  
-    diffuse_color=((0.5, 0.5, 0.5),),  
-    specular_color=((0.2, 0.2, 0.2),), # reduced specular highlight to keep tooth boundaries matte
-    device=device
-)
-
-blend_params = BlendParams(background_color=(1.0, 1.0, 1.0))
-
-renderer = MeshRenderer(
-    rasterizer=MeshRasterizer(
-        cameras=cameras, 
-        raster_settings=raster_settings
-    ),
-    shader=SoftPhongShader(
-        cameras=cameras,
-        lights=lights,
-        blend_params=blend_params,
-        device=device
-    )
-)
-
-# define a default color for each vertex
-num_vertices = mesh.verts_packed().shape[0]
-verts_features = torch.ones((1, num_vertices, 3), dtype=torch.float32, device=device) * 0.75
-mesh.textures = TexturesVertex(verts_features=verts_features)
-
-meshes = mesh.extend(views.shape[0])
-images = renderer(meshes)
-# bring the entire batch to CPU, remove alpha channel, and convert to NumPy
-images = images[..., :3].detach().cpu().numpy()
 
 temp_out_path = dataset_path.parent / "temp" / obj_file.stem
 print(f"temp_out_path={temp_out_path}")
@@ -195,48 +134,14 @@ plt.tight_layout()
 plt.show()
 
 # %%
-# render 2D projection label masks (face index rasterization)
+# render 2D projection label masks
 
-# Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly 
-# which face index is visible at every pixel. It then maps that face back to its vertex labels.
-
-mask_raster_settings = RasterizationSettings(
-    image_size=config["2d_projection"]["image_size"],
-    blur_radius=0.0,
-    faces_per_pixel=1,
-)
-mask_rasterizer = MeshRasterizer(cameras=cameras, raster_settings=mask_raster_settings)
-
-# get fragments (pix_to_face contains the face index for each pixel)
-fragments = mask_rasterizer(meshes)
-# Shape: (N, H, W) -> values are face indices, -1 means background
-pix_to_face = fragments.pix_to_face[..., 0]
-
-# map faces to vertex labels (identical for all view since it's the same mesh)
-# faces shape: (F, 3) | vertex_labels_tensor shape: (V,)
-faces = mesh.faces_packed()
-vertex_labels_tensor = torch.from_numpy(vertex_labels).to(mesh.device)
-
-# get the labels of the 3 vertices for every face -> Shape: (F, 3)
-face_vert_labels = vertex_labels_tensor[faces]
-
-# TODO, which method?
-# define face label by taking the first vertex
-face_labels = face_vert_labels[:, 0] # Shape: (F,)
-# define face label by majority vote (or taking the first vertex)
-#face_labels = torch.mode(face_vert_labels, dim=1).values # Shape: (F,)
-face_labels = face_labels.repeat(views.shape[0])
-
-# add a background label
-background_label = 255
-face_labels_with_bg = torch.cat([face_labels, torch.tensor([background_label], device=mesh.device)])
-
-# generate the final 2D segmentation mask
-segmentation_masks = face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
+segmentation_masks = preprocessing.render_2d_masks(mesh, vertex_labels)
 print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
 # visualize segmentation mask
 
+background_value = config["2d_projection"]["background_value"]
 cmap = plt.colormaps['viridis'].with_extremes(bad="white")
 
 cols = min(3, views.shape[0])
@@ -245,7 +150,7 @@ f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
 for i, ax in enumerate(axarr.flat):
     if i < images.shape[0]:
         segmentation_mask = segmentation_masks[i].astype(float)
-        segmentation_mask[segmentation_mask == background_label] = np.nan  # hide background (remains white/transparent)
+        segmentation_mask[segmentation_mask == background_value] = np.nan  # hide background (remains white/transparent)
 
         elev = views[i, 0].item()
         azim = views[i, 1].item()
@@ -261,11 +166,9 @@ plt.show()
 # %%
 # Convert mask images to YOLO annotations
 
-import supervision as sv
-
 for i, segmentation_mask in enumerate(segmentation_masks):
     unique_values = np.unique(segmentation_mask)
-    class_ids = [v for v in unique_values if v != background_label]
+    class_ids = [v for v in unique_values if v != background_value]
 
     mask_height, mask_width = segmentation_mask.shape[:2]
     scale_vector = np.array([mask_width, mask_height], dtype=np.float32)
@@ -298,8 +201,6 @@ for i, segmentation_mask in enumerate(segmentation_masks):
 
 # %%
 # Roundtrip: load the yolo annotations and visualize on segmentation masks
-
-import cv2
 
 annotated_images = []
 for i, view in enumerate(views):
