@@ -14,12 +14,12 @@
 
 # %%
 import cv2
-import json
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import torch
+import sys
 import yaml
 from pathlib import Path
 from pytorch3d.io import IO
@@ -35,6 +35,9 @@ from pytorch3d.renderer import (
     SoftPhongShader,
     TexturesVertex,
 )
+
+sys.path.append(str(Path.cwd().parent))
+from src import file_io
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -110,9 +113,7 @@ mesh = mesh.offset_verts(-mesh_center)
 # load the vertex labels
 json_file = obj_file.with_suffix(".json")
 print(f"json_file={json_file}")
-with open(json_file, "r") as json_file:
-    json_data = json.load(json_file)
-vertex_labels = np.array(json_data["labels"], dtype=np.uint8)
+vertex_labels = file_io.load_vertex_labels(json_file)
 
 plot_mesh(mesh, vertex_labels)
 
