@@ -29,36 +29,32 @@ class Preprocessing:
         # each row in views is [elevation, azimuth]
         self.views = np.array(config["2d_projection"]["views"])
 
-        self.R, self.T = look_at_view_transform(
+        R, T = look_at_view_transform(
             dist=self.config["2d_projection"]["distance"],
             elev=self.views[:, 0],
             azim=self.views[:, 1],
             device=self.device,
         )
 
-        self.cameras = FoVPerspectiveCameras(
+        cameras = FoVPerspectiveCameras(
             znear=0.1,
             zfar=100.0,
             fov=self.config["2d_projection"]["fov"],
-            R=self.R,
-            T=self.T,
+            R=R,
+            T=T,
             device=self.device,
         )
 
-        self.raster_settings = RasterizationSettings(
+        raster_settings = RasterizationSettings(
             image_size=self.config["2d_projection"]["image_size"],
             blur_radius=0.0,
             faces_per_pixel=1,
         )
 
-    def render_2d_views(
-        self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
-    ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
-        images = self.render_2d_images(mesh)
-        masks = self.render_2d_masks(mesh, vertex_labels)
-        return images, masks
+        self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
+        self.mask_rasterizer = self.__init_mask_rasterizer(cameras, raster_settings)
 
-    def render_2d_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+    def __init_image_renderer(self, cameras, raster_settings) -> MeshRenderer:
         light_dir = camera_position_from_spherical_angles(
             distance=1.0,
             elevation=self.views[:, 0],
@@ -78,18 +74,27 @@ class Preprocessing:
 
         blend_params = BlendParams(background_color=(1.0, 1.0, 1.0))
 
-        renderer = MeshRenderer(
-            rasterizer=MeshRasterizer(
-                cameras=self.cameras, raster_settings=self.raster_settings
-            ),
+        return MeshRenderer(
+            rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
             shader=SoftPhongShader(
-                cameras=self.cameras,
+                cameras=cameras,
                 lights=lights,
                 blend_params=blend_params,
                 device=self.device,
             ),
         )
 
+    def __init_mask_rasterizer(self, cameras, raster_settings) -> MeshRasterizer:
+        return MeshRasterizer(cameras=cameras, raster_settings=raster_settings)
+
+    def render_2d_views(
+        self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
+    ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
+        images = self.render_2d_images(mesh)
+        masks = self.render_2d_masks(mesh, vertex_labels)
+        return images, masks
+
+    def render_2d_images(self, mesh: Meshes) -> NDArray[np.uint8]:
         # define a default color for each vertex
         num_vertices = mesh.verts_packed().shape[0]
         verts_features = (
@@ -99,7 +104,7 @@ class Preprocessing:
         mesh.textures = TexturesVertex(verts_features=verts_features)
 
         meshes = mesh.extend(self.views.shape[0])
-        images = renderer(meshes)
+        images = self.image_renderer(meshes)
 
         # convert float images to grayscale, scale, and convert to uint8
         gray_images = images[..., :3].mean(dim=-1)
@@ -113,14 +118,10 @@ class Preprocessing:
         # Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly
         # which face index is visible at every pixel. It then maps that face back to its vertex labels.
 
-        mask_rasterizer = MeshRasterizer(
-            cameras=self.cameras, raster_settings=self.raster_settings
-        )
-
         meshes = mesh.extend(self.views.shape[0])
 
         # get fragments (pix_to_face contains the face index for each pixel)
-        fragments = mask_rasterizer(meshes)
+        fragments = self.mask_rasterizer(meshes)
         # Shape: (N, H, W) -> values are face indices, -1 means background
         pix_to_face = fragments.pix_to_face[..., 0]
 
