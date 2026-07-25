@@ -51,7 +51,14 @@ class Preprocessing:
             faces_per_pixel=1,
         )
 
-    def render_2d_views(self, mesh: Meshes) -> NDArray[np.float32]:
+    def render_2d_views(
+        self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
+    ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
+        images = self.render_2d_images(mesh)
+        masks = self.render_2d_masks(mesh, vertex_labels)
+        return images, masks
+
+    def render_2d_images(self, mesh: Meshes) -> NDArray[np.uint8]:
         light_dir = camera_position_from_spherical_angles(
             distance=1.0,
             elevation=self.views[:, 0],
@@ -94,9 +101,12 @@ class Preprocessing:
         meshes = mesh.extend(self.views.shape[0])
         images = renderer(meshes)
 
-        # bring the entire batch to CPU, remove alpha channel, and convert to NumPy
-        # TODO: can return uint8 images?
-        return images[..., :3].detach().cpu().numpy()
+        # convert float images to grayscale, scale, and convert to uint8
+        gray_images = images[..., :3].mean(dim=-1)
+        uint8_images = (gray_images * 255.0).clamp(0, 255).to(torch.uint8)
+
+        # bring the entire batch to CPU and convert to NumPy
+        return uint8_images.cpu().numpy()
 
     def render_2d_masks(self, mesh: Meshes, vertex_labels: NDArray[np.uint8]):
         # render 2D projection label masks (face index rasterization)

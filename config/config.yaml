@@ -1,4 +1,5 @@
-dataset_path: "data/Teeth3DS+"
+dataset_path_2d: "data/Teeth2D"
+dataset_path_3d: "data/Teeth3DS+"
 2d_projection:
   image_size: [512, 512]
   background_value: 255

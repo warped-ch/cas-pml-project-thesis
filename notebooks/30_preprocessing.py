@@ -83,7 +83,7 @@ def plot_mesh(mesh, vertex_labels=None):
 # %%
 # load a mesh sample
 
-dataset_path = root_path / config["dataset_path"]
+dataset_path = root_path / config["dataset_path_3d"]
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
@@ -106,7 +106,7 @@ plot_mesh(mesh, vertex_labels)
 
 preprocessing = preprocessing.Preprocessing(config, device)
 
-images = preprocessing.render_2d_views(mesh)
+images = preprocessing.render_2d_images(mesh)
 
 # each row in views is [elevation, azimuth]
 views = np.array(config["2d_projection"]["views"])
@@ -128,7 +128,7 @@ for i, ax in enumerate(axarr.flat):
         ax.imshow(segmentation_mask)
         ax.set_title(f"elevation={elev}, azimuth={azim}")
 
-        plt.imsave(temp_out_path / f"view_elev{elev}_azim{azim}.png", segmentation_mask)
+        cv2.imwrite(temp_out_path / f"view_elev{elev}_azim{azim}.png", segmentation_mask)
 
 plt.tight_layout()
 plt.show()

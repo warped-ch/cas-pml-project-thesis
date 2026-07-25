@@ -66,7 +66,6 @@ def get_missing_teeth(vertex_labels, vertex_label_file):
 # %%
 def load_sample(scan_file_path):
     vertex_label_file = scan_file_path.with_suffix(".json")
-    # dataset contains samples from 3DTeethLand_challenge, skip those (no vertex label files available)
     if not vertex_label_file.exists():
         print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
         return None
@@ -93,7 +92,7 @@ def load_sample(scan_file_path):
 # %%
 # load the data
 
-dataset_path = root_path / config.get("dataset_path")
+dataset_path = root_path / config.get("dataset_path_3d")
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
