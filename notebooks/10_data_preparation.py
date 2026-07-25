@@ -38,6 +38,7 @@ from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
 from src import file_io, preprocessing
+from src.teeth2d_dataset_importer import Teeth2DDatasetImporter
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -119,10 +120,32 @@ for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
         elev = view[0]
         azim = view[1]
 
-        image_file = images_path / obj_file.stem / f"image_elev{elev}_azim{azim}.png"
+        image_file = images_path / f"{obj_file.stem}_elev{elev}_azim{azim}.png"
         image_file.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(image_file, image)
 
-        mask_file = masks_path / obj_file.stem / f"mask_elev{elev}_azim{azim}.png"
+        mask_file = masks_path / f"{obj_file.stem}_elev{elev}_azim{azim}.png"
         mask_file.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(mask_file, mask)
+
+# %%
+import fiftyone as fo
+
+dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d))
+# dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d / "test"))
+
+fo_dataset = fo.Dataset.from_importer(
+  name=str(dataset_path_2d.stem),
+  dataset_importer=dataset_importer,
+  overwrite=True)
+
+# fo_dataset.export(
+#     dataset_type=fo.types.COCODetectionDataset,
+#     labels_path=str(dataset_path_2d / "test" / "annotations"),
+#     label_field="ground_truth",
+#     export_media=False,
+#     abs_paths=False,
+# )
+
+session = fo.launch_app(fo_dataset, auto=False)
+session.open_tab()

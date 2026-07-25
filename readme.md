@@ -38,6 +38,12 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 uv sync --upgrade
 ```
 
+### Launch fiftyone from cmd line
+
+```
+fiftyone app launch Teeth2D
+```
+
 ## Datasets / Challenges
 
 - [Teeth3DS+: An Extended Benchmark for Intraoral 3D Scans Analysis](https://arxiv.org/pdf/2210.06094)
