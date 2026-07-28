@@ -7,7 +7,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.4
 #   kernelspec:
-#     display_name: project-thesis (3.12.9.final.0)
+#     display_name: project-thesis (3.12.9)
 #     language: python
 #     name: python3
 # ---
@@ -95,7 +95,8 @@ for obj_file in obj_files:
 # %% [markdown]
 # ## Dataset: Teeth2D
 #
-# Create the image dataset `Teeth2D` by rendering multiple views of the 3D mesh models. 
+# - Create the image dataset `Teeth2D` by rendering multiple views of the 3D mesh models. 
+# - Convert it into COCO dataset format using FiftyOne. 
 
 # %%
 images_path = dataset_path_2d / "images"
@@ -130,86 +131,28 @@ for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
 
 # %%
 import fiftyone as fo
-import fiftyone.utils.labels as foul
 
-# dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d))
-dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d / "test"))
+# TODO: fix background label issue, fo treats 0 by default as background and doesn't display it?
+# TODO: possible to speed up fo stuff using multi-precessing, batch processing?
+
+dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d))
 
 fo_dataset = fo.Dataset.from_importer(
-  name=str(dataset_path_2d.stem + "_test"),
+  name=str(dataset_path_2d.stem),
   dataset_importer=dataset_importer,
   overwrite=True)
 
-mask_targets = {
-    11: "class_11",
-    21: "class_21",
-}
-fo_dataset.default_mask_targets = mask_targets
-
-foul.segmentations_to_detections(
-    fo_dataset,
-    "ground_truth",           # Input: your Segmentation field
-    "ground_truth_instances", # Output: a new Detections field
-)
-
+# TODO: custom exporter?
+# TODO: image paths seem to be wrong
 fo_dataset.export(
     dataset_type=fo.types.COCODetectionDataset,
-    labels_path=str(dataset_path_2d / "test" / "annotations"),
-    label_field="ground_truth_instances",
+    export_dir=str(dataset_path_2d),
+    label_field="ground_truth_det",
     export_media=False,
     abs_paths=False,
+    overwrite=True,
+    # TODO: needed? tolerance=0,  # Keeps every pixel boundary point
 )
 
 session = fo.launch_app(fo_dataset, auto=False)
 session.open_tab()
-
-# %%
-import fiftyone as fo
-import fiftyone.utils.labels as foul
-
-# TODO: fix background label issue, fo treats 0 by default as background and doesn't display it?
-
-class_ids = config["class_ids"]
-mask_targets = {cid: f"class_{cid}" for cid in class_ids}
-
-dataset = fo.Dataset.from_dir(
-    dataset_type=fo.types.ImageSegmentationDirectory,
-    data_path=str(dataset_path_2d / "images"),
-    labels_path=str(dataset_path_2d / "masks"),
-    name=str(dataset_path_2d.stem),
-    label_field="ground_truth_seg",
-    overwrite=True
-)
-
-dataset.default_mask_targets = mask_targets
-dataset.save()
-
-# convert semantic segmentations to instance segmentations for 
-# - improved label visualization (selective display)
-# - COCO export
-foul.segmentations_to_detections(
-    dataset,
-    in_field="ground_truth_seg",
-    out_field="ground_truth_det",
-    mask_targets=mask_targets,
-    mask_types="thing",
-)
-# set iscrowd attribute, indicates the segment encompasses a group of objects (relevant for thing categories)
-for sample in dataset:
-    for det in sample["ground_truth_det"].detections:
-        det["iscrowd"] = 1
-    sample.save()
-
-session = fo.launch_app(dataset, auto=False)
-session.open_tab()
-
-# %%
-# export the fifityone COCO dataset
-
-# TODO: optimize by exporting only labels.json, images are already there, make sure path matches
-
-dataset.export(
-    export_dir=str(dataset_path_2d / "coco"),
-    dataset_type=fo.types.COCODetectionDataset,
-    label_field="ground_truth_det",
-)
