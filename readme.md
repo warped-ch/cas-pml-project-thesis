@@ -4,6 +4,8 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 
 ## Resources
 
+- [COCO](https://cocodataset.org/#home)
+    - [Data format](https://cocodataset.org/#format-data)
 - [PyTorch](https://pytorch.org/)
     - [Start Locally](https://pytorch.org/get-started/locally/)
 - [PyTorch3D](https://pytorch3d.org/)

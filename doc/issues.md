@@ -1,5 +1,11 @@
 ## Issues and Workarounds
 
+### Fiftyone
+
+#### All the labels have the same color
+
+In case all the labels from different class IDs are displayed with the same color, got to `Color settings` in fiftyone app (the color palette icon) and set `Color annotations by` to `label`. 
+
 ### Open3D
 
 #### 🛑 Blocker: Open3D web_visualizer crashes Jupyter kernel
