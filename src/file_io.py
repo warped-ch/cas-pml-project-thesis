@@ -28,12 +28,16 @@ def load_mesh_origin_aligned(
     return mesh
 
 
-def load_vertex_labels(json_file: str) -> np.ndarray:
+def load_vertex_labels(
+    json_file: str, class_id_map: dict[int, int] | None = None
+) -> np.ndarray:
     """
     Loads vertex labels from a JSON file and converts them into a NumPy array of unsigned 8-bit integers.
 
     Args:
         json_file (str): The path to the JSON file containing the label data.
+        class_id_map (dict, optional): A dictionary mapping old class IDs to new class IDs.
+            Unmapped IDs will retain their original value.
 
     Returns:
         np.ndarray: A NumPy array containing the vertex labels.
@@ -41,4 +45,12 @@ def load_vertex_labels(json_file: str) -> np.ndarray:
     with open(json_file, "r") as f:
         json_data = json.load(f)
 
-    return np.array(json_data["labels"], dtype=np.uint8)
+    vertex_labels = np.array(json_data["labels"], dtype=np.uint8)
+
+    if class_id_map:
+        lookup = np.arange(256, dtype=np.uint8)
+        for old_id, new_id in class_id_map.items():
+            lookup[old_id] = new_id
+        vertex_labels = lookup[vertex_labels]
+
+    return vertex_labels

@@ -107,6 +107,8 @@ masks_path = dataset_path_2d / "masks"
 masks_path.mkdir(parents=True, exist_ok=True)
 print(f"masks_path={masks_path}")
 
+class_id_map = config["class_id_map"]
+
 preproc = preprocessing.Preprocessing(config, device)
 
 obj_files = list(dataset_path_3d.rglob("*.obj"))
@@ -114,7 +116,7 @@ print(f"number of scans: {len(obj_files)}")
 
 for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
     mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
-    vertex_labels = file_io.load_vertex_labels(obj_file.with_suffix(".json"))
+    vertex_labels = file_io.load_vertex_labels(obj_file.with_suffix(".json"), class_id_map)
     images, masks = preproc.render_2d_views(mesh, vertex_labels)
 
     for image, mask, view in zip(images, masks, preproc.views):
@@ -132,7 +134,6 @@ for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
 # %%
 import fiftyone as fo
 
-# TODO: fix background label issue, fo treats 0 by default as background and doesn't display it?
 # TODO: possible to speed up fo stuff using multi-precessing, batch processing?
 
 dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d))

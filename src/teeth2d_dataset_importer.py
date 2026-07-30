@@ -10,9 +10,6 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
     """
     Custom FiftyOne importer for "Teeth2D" dataset, to load images and multiclass segmentation masks.
     
-    Note: "background hack"
-    Pixel value 0 is reserved for "background" in fiftyone. 
-    To overcome this, "class_0" is remapped to pixel value 1 when loading mask image. 
         - https://docs.voxel51.com/user_guide/using_datasets.html#semantic-segmentation
         - https://docs.voxel51.com/user_guide/using_datasets.html#instance-segmentations
 
@@ -33,8 +30,6 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         self.config = config
 
         self.mask_targets = {int(cid): f"class_{cid}" for cid in config["class_ids"]}
-        # see note: "background hack"
-        self.mask_targets[1] = self.mask_targets.pop(0)
 
         self._dataset_root = Path(dataset_dir)
         self._images_dir = self._dataset_root / "images"
@@ -59,9 +54,8 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
 
     def __next__(self):
         image_path, mask_path = next(self._iter_uuids)
-        # see note: "background hack"
+        
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-        mask[mask == 0] = 1
 
         # semantic segmentation labels
         segmentation = fo.Segmentation(mask=mask)
