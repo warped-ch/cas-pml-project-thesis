@@ -143,7 +143,6 @@ fo_dataset = fo.Dataset.from_importer(
   overwrite=True)
 
 # TODO: custom exporter?
-# TODO: image paths seem to be wrong
 fo_dataset.export(
     dataset_type=fo.types.COCODetectionDataset,
     export_dir=str(dataset_path_2d),
