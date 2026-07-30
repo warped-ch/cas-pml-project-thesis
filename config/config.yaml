@@ -8,6 +8,7 @@ class_ids: [0,
 # a dict used to remap class ids internally for the following reasons:
 # - fiftyone: pixel value 0 is reserved for "background"
 # - COCO: dataset category IDs are 1-based
+# TODO: provide full class id map to avoid special handling in teeth2d_dataset_importer.py and just use mapped_class_ids?
 class_id_map:
   0: 1 # remap class id 0 to class id 1
 2d_projection:
