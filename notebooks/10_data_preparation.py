@@ -150,7 +150,7 @@ fo_dataset.export(
     label_field="ground_truth_det",
     export_media=False,
     abs_paths=False,
-    overwrite=True,
+    overwrite=False,
     # TODO: needed? tolerance=0,  # Keeps every pixel boundary point
 )
 
