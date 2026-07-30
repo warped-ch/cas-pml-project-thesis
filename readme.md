@@ -10,8 +10,8 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
     - [Start Locally](https://pytorch.org/get-started/locally/)
 - [PyTorch3D](https://pytorch3d.org/)
     - [Installation](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
-
-- https://medium.com/data-science/how-to-render-3d-files-using-pytorch3d-ef9de72483f8
+- Tutorials:
+    - https://medium.com/data-science/how-to-render-3d-files-using-pytorch3d-ef9de72483f8
 
 ## Dev Setup
 
@@ -33,6 +33,14 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
     ```
     jupytext --sync .\notebooks\*.py
     ```
+
+### Syncing notebooks before commit
+
+Jupytext syncing does not seem to work reliably, make sure to sync the notebooks before a commit:
+
+```
+jupytext --sync .\notebooks\*.ipynb
+```
 
 ### Upgrade dependencies
 

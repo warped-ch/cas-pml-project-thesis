@@ -6,6 +6,7 @@ import fiftyone as fo
 import fiftyone.utils.data as foud
 
 
+# TODO: possible to speed up fo stuff using multi-precessing, batch processing?
 class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
     """
     Custom FiftyOne importer for "Teeth2D" dataset, to load images and multiclass segmentation masks.

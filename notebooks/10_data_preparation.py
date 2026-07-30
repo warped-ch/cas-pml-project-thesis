@@ -28,10 +28,12 @@
 #   - data_part_7.zip
 
 # %%
+import shutil
 import sys
 from pathlib import Path
 
 import cv2
+import fiftyone as fo
 import torch
 import yaml
 from tqdm.auto import tqdm
@@ -80,11 +82,7 @@ test_dataset = Teeth3DS(
     train=False,
 )
 
-# %%
-# dataset still contains samples from 3DTeethLand_challenge (no vertex label files available), remove those
-
-import shutil
-
+# Teeth3DS+ dataset still contains samples from 3DTeethLand_challenge (no vertex label files available), remove those
 obj_files = list(dataset_path_3d.rglob("*.obj"))
 for obj_file in obj_files:
     vertex_label_file = obj_file.with_suffix(".json")
@@ -112,7 +110,6 @@ class_id_map = config["class_id_map"]
 preproc = preprocessing.Preprocessing(config, device)
 
 obj_files = list(dataset_path_3d.rglob("*.obj"))
-print(f"number of scans: {len(obj_files)}")
 
 for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
     mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
@@ -132,9 +129,7 @@ for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
         cv2.imwrite(mask_file, mask)
 
 # %%
-import fiftyone as fo
-
-# TODO: possible to speed up fo stuff using multi-precessing, batch processing?
+# create Teeth2D dataset using fiftyone
 
 dataset_importer = Teeth2DDatasetImporter(config=config, dataset_dir=str(dataset_path_2d))
 
@@ -143,6 +138,12 @@ fo_dataset = fo.Dataset.from_importer(
   dataset_importer=dataset_importer,
   overwrite=True)
 
+session = fo.launch_app(fo_dataset, auto=False)
+session.open_tab()
+
+# %%
+# export Teeth2D COCO dataset
+
 # TODO: custom exporter?
 fo_dataset.export(
     dataset_type=fo.types.COCODetectionDataset,
@@ -150,9 +151,6 @@ fo_dataset.export(
     label_field="ground_truth_det",
     export_media=False,
     abs_paths=False,
-    overwrite=False,
-    # TODO: needed? tolerance=0,  # Keeps every pixel boundary point
+    overwrite=False, # TODO: will labels.json get merged, delete explicitly before export?
+    # TODO: should use: tolerance=0, # Keeps every pixel boundary point
 )
-
-session = fo.launch_app(fo_dataset, auto=False)
-session.open_tab()
