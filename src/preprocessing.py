@@ -113,7 +113,9 @@ class Preprocessing:
         # bring the entire batch to CPU and convert to NumPy
         return uint8_images.cpu().numpy()
 
-    def render_2d_masks(self, mesh: Meshes, vertex_labels: NDArray[np.uint8]):
+    def render_2d_masks(
+        self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
+    ) -> NDArray[np.uint8]:
         # render 2D projection label masks (face index rasterization)
         # Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly
         # which face index is visible at every pixel. It then maps that face back to its vertex labels.
