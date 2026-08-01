@@ -18,7 +18,7 @@ from pytorch3d.renderer import (
 from pytorch3d.structures import Meshes
 
 
-class Preprocessing:
+class ViewProjector:
     def __init__(
         self, config: dict[str, Any], device: str | torch.device | None = None
     ) -> None:

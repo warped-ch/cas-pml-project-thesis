@@ -25,7 +25,7 @@ import torch
 import yaml
 
 sys.path.append(str(Path.cwd().parent))
-from src import file_io, preprocessing
+from src import file_io, view_projector
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -63,9 +63,9 @@ nb_utils.plot_mesh(mesh, vertex_labels)
 # %%
 # render 2D projection
 
-preprocessing = preprocessing.Preprocessing(config, device)
+view_proj = view_projector.ViewProjector(config, device)
 
-images = preprocessing.render_2d_images(mesh)
+images = view_proj.render_2d_images(mesh)
 
 # each row in views is [elevation, azimuth]
 views = np.array(config["2d_projection"]["views"])
@@ -87,7 +87,7 @@ for i, view in enumerate(views):
 # %%
 # render 2D projection label masks
 
-segmentation_masks = preprocessing.render_2d_masks(mesh, vertex_labels)
+segmentation_masks = view_proj.render_2d_masks(mesh, vertex_labels)
 print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
 # visualize segmentation masks

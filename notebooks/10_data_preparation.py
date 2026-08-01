@@ -39,7 +39,7 @@ import yaml
 from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
-from src import file_io, preprocessing
+from src import file_io, view_projector
 from src.teeth2d_dataset_importer import Teeth2DDatasetImporter
 
 root_path = Path.cwd().parent
@@ -107,16 +107,16 @@ print(f"masks_path={masks_path}")
 
 class_id_map = config["class_id_map"]
 
-preproc = preprocessing.Preprocessing(config, device)
+view_proj = view_projector.ViewProjector(config, device)
 
 obj_files = list(dataset_path_3d.rglob("*.obj"))
 
 for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
     mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
     vertex_labels = file_io.load_vertex_labels(obj_file.with_suffix(".json"), class_id_map)
-    images, masks = preproc.render_2d_views(mesh, vertex_labels)
+    images, masks = view_proj.render_2d_views(mesh, vertex_labels)
 
-    for image, mask, view in zip(images, masks, preproc.views):
+    for image, mask, view in zip(images, masks, view_proj.views):
         elev = view[0]
         azim = view[1]
 
