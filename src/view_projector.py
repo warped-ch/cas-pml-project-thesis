@@ -103,8 +103,8 @@ class ViewProjector:
         )
         mesh.textures = TexturesVertex(verts_features=verts_features)
 
-        meshes = mesh.extend(self.views.shape[0])
-        images = self.image_renderer(meshes)
+        meshes_ext = mesh.extend(self.views.shape[0])
+        images = self.image_renderer(meshes_ext)
 
         # convert float images to grayscale, scale, and convert to uint8
         gray_images = images[..., :3].mean(dim=-1)
@@ -120,10 +120,10 @@ class ViewProjector:
         # Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly
         # which face index is visible at every pixel. It then maps that face back to its vertex labels.
 
-        meshes = mesh.extend(self.views.shape[0])
+        meshes_ext = mesh.extend(self.views.shape[0])
 
         # get fragments (pix_to_face contains the face index for each pixel)
-        fragments = self.mask_rasterizer(meshes)
+        fragments = self.mask_rasterizer(meshes_ext)
         # Shape: (N, H, W) -> values are face indices, -1 means background
         pix_to_face = fragments.pix_to_face[..., 0]
 
@@ -149,3 +149,71 @@ class ViewProjector:
 
         # generate the final 2D segmentation mask
         return face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
+
+    def back_project_vertex_labels(
+        self, mesh: Meshes, masks: NDArray[np.uint8], num_classes: int
+    ) -> NDArray[np.uint8]:
+        """
+        Project 2D mask labels back to 3D mesh vertices using face indexing.
+
+        masks: Shape (N_views, H, W)
+        num_classes: Total number of labels (including background)
+        """
+        # get face information
+        # when extending a mesh in PyTorch3D, face indices in fragments.pix_to_face
+        # refer to the indices in the original mesh's faces_packed() list
+        faces = mesh.faces_packed()  # (F, 3)
+        num_verts = mesh.verts_packed().shape[0]
+        num_views = self.views.shape[0]
+
+        # re-run rasterizer to get pix_to_face
+        # this tells us which face index is at every pixel (u, v)
+        meshes_ext = mesh.extend(num_views)
+        fragments = self.mask_rasterizer(meshes_ext)
+        pix_to_face = fragments.pix_to_face[..., 0]  # (N_views, H, W)
+
+        # prepare tensors
+        masks_tensor = torch.from_numpy(masks).to(self.device).long()
+
+        # voting buffer (V, num_classes)
+        votes = torch.zeros((num_verts, num_classes), device=self.device)
+
+        # filter background
+        # create a mask of pixels that actually hit the mesh (PyTorch3D returns -1 for background in pix_to_face)
+        hit_mask = pix_to_face >= 0
+
+        # extract valid data
+        valid_face_indices = pix_to_face[hit_mask]
+        valid_labels = masks_tensor[hit_mask]
+
+        # map pixel labels to vertices
+        # a pixel belongs to a face, a face has 3 vertices
+        # map the pixel's label as a vote to all 3 vertices of that face
+        face_verts = faces[valid_face_indices]
+
+        # scatter the votes into the (V, C) buffer
+        # one pixel votes for 3 vertices, repeat labels 3 times
+        v_indices = face_verts.reshape(-1)  # flattened vertex indices
+        l_indices = valid_labels.repeat_interleave(3)  # flattened labels
+
+        # Use a dummy tensor of ones to count occurrences
+        ones = torch.ones_like(v_indices, dtype=torch.float32)
+
+        # advanced indexing to populate the votes
+        # votes[v_indices, l_indices] += 1
+        # Note: simple += doesn't work for duplicate indices in PyTorch, we must use put_ or scatter_add_
+
+        # create a flat index for the (V, C) matrix to use scatter_add_
+        flat_indices = v_indices * num_classes + l_indices
+        votes_flat = votes.view(-1)
+        votes_flat.scatter_add_(0, flat_indices, ones)
+
+        # consensus
+        # TODO optionally:
+        # Ignore the background class (e.g. index 0 or self.background_value) during the argmax
+        # so vertices aren't labeled as background just because they were invisible in some views.
+        # votes[:, self.background_value] = 0
+
+        # TODO, distinguish background and vertices without votes, new class id "unknown"?
+        vertex_labels = torch.argmax(votes, dim=1)
+        return vertex_labels.cpu().numpy().astype(np.uint8)

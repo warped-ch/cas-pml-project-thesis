@@ -101,3 +101,13 @@ nb_utils.plot_image_grid(
 
 for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"mask_elev{view[0]}_azim{view[1]}.png", segmentation_masks[i])
+
+# %%
+# roundtrip: back projection of ground truth masks to mesh vertex labels
+
+num_classes = len(np.unique(vertex_labels))
+print(f"num_classes={num_classes}")
+
+vertex_labels_out = view_proj.back_project_vertex_labels(mesh, segmentation_masks, num_classes)
+print(f"vertex_labels.shape={vertex_labels.shape}")
+print(f"vertex_labels_out.shape={vertex_labels_out.shape}")
