@@ -96,7 +96,7 @@ mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
 # load the vertex labels
 json_file = obj_file.with_suffix(".json")
 print(f"json_file={json_file}")
-vertex_labels = file_io.load_vertex_labels(json_file)
+vertex_labels = file_io.load_vertex_labels(json_file, config["class_id_map"])
 
 plot_mesh(mesh, vertex_labels)
 
@@ -119,15 +119,15 @@ rows = math.ceil(views.shape[0] / cols)
 f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
 for i, ax in enumerate(axarr.flat):
     if i < images.shape[0]:
-        segmentation_mask = images[i]
+        image = images[i]
 
         elev = views[i, 0].item()
         azim = views[i, 1].item()
 
-        ax.imshow(segmentation_mask)
+        ax.imshow(image, cmap="gray")
         ax.set_title(f"elevation={elev}, azimuth={azim}")
 
-        cv2.imwrite(temp_out_path / f"view_elev{elev}_azim{azim}.png", segmentation_mask)
+        cv2.imwrite(temp_out_path / f"view_elev{elev}_azim{azim}.png", image)
 
 plt.tight_layout()
 plt.show()
@@ -140,8 +140,7 @@ print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
 # visualize segmentation mask
 
-background_value = config["2d_projection"]["background_value"]
-cmap = plt.colormaps['viridis'].with_extremes(bad="white")
+cmap = plt.colormaps['viridis'].copy().with_extremes(bad="white")
 
 cols = min(3, views.shape[0])
 rows = math.ceil(views.shape[0] / cols)
@@ -149,7 +148,7 @@ f, axarr = plt.subplots(rows, cols, figsize=(12, 12))
 for i, ax in enumerate(axarr.flat):
     if i < images.shape[0]:
         segmentation_mask = segmentation_masks[i].astype(float)
-        segmentation_mask[segmentation_mask == background_value] = np.nan  # hide background (remains white/transparent)
+        segmentation_mask[segmentation_mask == config["2d_projection"]["background_value"]] = np.nan  # hide background (remains white/transparent)
 
         elev = views[i, 0].item()
         azim = views[i, 1].item()
