@@ -151,18 +151,22 @@ class ViewProjector:
         return face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
 
     def back_project_vertex_labels(
-        self, mesh: Meshes, masks: NDArray[np.uint8], num_classes: int
+        self, mesh: Meshes, masks: NDArray[np.uint8]
     ) -> NDArray[np.uint8]:
         """
         Project 2D mask labels back to 3D mesh vertices using face indexing.
 
         masks: Shape (N_views, H, W)
-        num_classes: Total number of labels (including background)
         """
+        # num_classes must be the max label value + 1, not the count of unique labels
+        # this ensures the voting matrix is wide enough so that every label value can be used as a direct column index
+        num_classes = int(masks.max()) + 1
+
         # get face information
         # when extending a mesh in PyTorch3D, face indices in fragments.pix_to_face
         # refer to the indices in the original mesh's faces_packed() list
         faces = mesh.faces_packed()  # (F, 3)
+        num_faces_per_mesh = faces.shape[0]
         num_verts = mesh.verts_packed().shape[0]
         num_views = self.views.shape[0]
 
@@ -175,16 +179,19 @@ class ViewProjector:
         # prepare tensors
         masks_tensor = torch.from_numpy(masks).to(self.device).long()
 
-        # voting buffer (V, num_classes)
-        votes = torch.zeros((num_verts, num_classes), device=self.device)
-
         # filter background
         # create a mask of pixels that actually hit the mesh (PyTorch3D returns -1 for background in pix_to_face)
         hit_mask = pix_to_face >= 0
 
         # extract valid data
-        valid_face_indices = pix_to_face[hit_mask]
+        # use modulo operator to map global batch face index to local mesh face index
+        valid_face_indices = pix_to_face[hit_mask] % num_faces_per_mesh
         valid_labels = masks_tensor[hit_mask]
+
+        # TODO: exclude background from voting
+        # valid_mask = (valid_labels != self.background_value)
+        # valid_face_indices = valid_face_indices[valid_mask]
+        # valid_labels = valid_labels[valid_mask]
 
         # map pixel labels to vertices
         # a pixel belongs to a face, a face has 3 vertices
@@ -196,6 +203,13 @@ class ViewProjector:
         v_indices = face_verts.reshape(-1)  # flattened vertex indices
         l_indices = valid_labels.repeat_interleave(3)  # flattened labels
 
+        if not (l_indices < num_classes).all():
+            raise ValueError(
+                f"Label found in mask ({l_indices.max()}) exceeds num_classes ({num_classes})"
+            )
+
+        # voting buffer (V, num_classes)
+        votes = torch.zeros((num_verts, num_classes), device=self.device)
         # Use a dummy tensor of ones to count occurrences
         ones = torch.ones_like(v_indices, dtype=torch.float32)
 

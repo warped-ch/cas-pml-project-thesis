@@ -105,9 +105,8 @@ for i, view in enumerate(views):
 # %%
 # roundtrip: back projection of ground truth masks to mesh vertex labels
 
-num_classes = len(np.unique(vertex_labels))
-print(f"num_classes={num_classes}")
-
-vertex_labels_out = view_proj.back_project_vertex_labels(mesh, segmentation_masks, num_classes)
+vertex_labels_out = view_proj.back_project_vertex_labels(mesh, segmentation_masks)
 print(f"vertex_labels.shape={vertex_labels.shape}")
 print(f"vertex_labels_out.shape={vertex_labels_out.shape}")
+
+nb_utils.plot_mesh(mesh, vertex_labels_out)
