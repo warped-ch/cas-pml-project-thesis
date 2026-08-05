@@ -151,6 +151,6 @@ fo_dataset.export(
     label_field="ground_truth_det",
     export_media=False,
     abs_paths=False,
-    overwrite=False, # TODO: will labels.json get merged, delete explicitly before export?
+    overwrite=False,
     # TODO: should use: tolerance=0, # Keeps every pixel boundary point
 )
