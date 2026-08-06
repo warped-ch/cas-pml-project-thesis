@@ -15,7 +15,15 @@ class_ids: [0,
 class_id_map:
   0: 1 # remap class id 0 to class id 1
 2d_projection:
-  image_size: [512, 512]
+  # common resolution values for RF-DETR-Seg models:
+  # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#resolution-parameters
+  # RF-DETR-Seg-N: 312x312
+  # RF-DETR-Seg-S: 384x384
+  # RF-DETR-Seg-M: 432x432
+  # RF-DETR-Seg-L: 504x504
+  # RF-DETR-Seg-XL: 624×624
+  # RF-DETR-Seg-2XL: 768×768
+  image_size: [432, 432]
   background_value: 0
   distance: 80
   fov: 60
@@ -31,3 +39,4 @@ class_id_map:
     - [60, 45]  # bottom up back diagonal right
     - [0, -90]  # left side
     - [0, 90]   # right side
+rf_train_output: "output/rf_train"

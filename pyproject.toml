@@ -20,6 +20,7 @@ dependencies = [
   "pyvista[jupyter]>=0.48.4",
   "opencv-python>=5.0.0.93",
   "fiftyone>=1.19.0",
+  "rfdetr[train]>=1.9.1",
 ]
 
 [dependency-groups]

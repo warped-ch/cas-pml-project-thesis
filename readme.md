@@ -12,6 +12,8 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
     - [Start Locally](https://pytorch.org/get-started/locally/)
 - [PyTorch3D](https://pytorch3d.org/)
     - [Installation](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
+- [Roboflow](https://roboflow.com/)
+    - [RF-DETR](https://rfdetr.roboflow.com/latest/)
 - Tutorials
     - [Medium: How to render a 3D mesh and convert it to a 2D image using PyTorch3D](https://medium.com/data-science/how-to-render-3d-files-using-pytorch3d-ef9de72483f8)
 

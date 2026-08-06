@@ -16,6 +16,7 @@
 # # Data Preparation
 
 # %%
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -253,3 +254,19 @@ export_split(train_view, train_path)
 
 test_path = dataset_path_2d / "test"
 export_split(test_view, test_path)
+
+# create a dummy validation split (workaround for Roboflow RF-DETR framework requirement)
+# https://github.com/roboflow/rf-detr/issues/260
+
+valid_path = dataset_path_2d / "valid"
+valid_path.mkdir(parents=True, exist_ok=True)
+print(f"valid_path={valid_path}")
+
+valid_dummy = {
+    "images": [],
+    "annotations": [],
+    "categories": []
+}
+
+with open(valid_path / "_annotations.coco.json", "w", encoding="utf-8") as f:
+    json.dump(valid_dummy, f)
