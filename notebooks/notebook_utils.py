@@ -31,6 +31,10 @@ def plot_image_grid(
             ax.imshow(image, cmap=cmap)
             if titles:
                 ax.set_title(titles[i])
+        else:
+            # hide unused plots
+            ax.axis('off') 
+            ax.set_visible(False)
     plt.tight_layout()
     plt.show()
 
