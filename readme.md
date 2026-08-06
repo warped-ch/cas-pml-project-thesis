@@ -6,12 +6,51 @@ Project thesis for [CAS - Practical Machine Learning](https://www.bfh.ch/de/weit
 
 - [COCO](https://cocodataset.org/#home)
     - [Data format](https://cocodataset.org/#format-data)
+- [Fiftyone](https://voxel51.com/fiftyone)
+    - [Docs](https://docs.voxel51.com/index.html#)
 - [PyTorch](https://pytorch.org/)
     - [Start Locally](https://pytorch.org/get-started/locally/)
 - [PyTorch3D](https://pytorch3d.org/)
     - [Installation](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
-- Tutorials:
-    - https://medium.com/data-science/how-to-render-3d-files-using-pytorch3d-ef9de72483f8
+- Tutorials
+    - [Medium: How to render a 3D mesh and convert it to a 2D image using PyTorch3D](https://medium.com/data-science/how-to-render-3d-files-using-pytorch3d-ef9de72483f8)
+
+## Data Directory Structure
+
+```
+project_root/
+├── ...
+├── data/
+    ├── Teeth2D/
+    |   ├── images/
+    |   |   ├── 00OMSZGW_lower_elev-60_azim0.png
+    |   |   └── ...
+    |   ├── masks/
+    |   |   ├── 00OMSZGW_lower_elev0_azim0.png
+    |   |   └── ...
+    |   ├── labels.json
+    |   ├── test.json
+    |   └── train.json
+    ├── Teeth3DS+/
+    |   └── raw/
+    |       ├── lower/
+    |       |   ├── 00OMSZGW/
+    |       |   |   ├── 00OMSZGW_lower.json
+    |       |   |   └── 00OMSZGW_lower.obj
+    |       |   └── ...
+    |       ├── Teeth3DS_train_test_split/
+    |       |   ├── testing_lower.txt
+    |       |   ├── testing_upper.txt
+    |       |   ├── training_lower.txt
+    |       |   └── training_upper.txt
+    |       └── upper/
+    |           ├── 00OMSZGW/
+    |           |   ├── 00OMSZGW_upper.json
+    |           |   └── 00OMSZGW_upper.obj
+    |           └── ...
+    ├── test.txt
+    └── train.txt
+```
 
 ## Dev Setup
 
