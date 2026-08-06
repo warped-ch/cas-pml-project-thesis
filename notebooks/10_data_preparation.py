@@ -224,7 +224,7 @@ session = fo.launch_app(fo_dataset, auto=False)
 session.open_tab()
 
 # %% [markdown]
-# ### Export `Teeth2D`
+# ### Export Teeth2D dataset
 
 # %%
 # export Teeth2D COCO dataset train/test splits
@@ -234,30 +234,22 @@ session.open_tab()
 
 shutil.rmtree(dataset_path_2d, ignore_errors=True)
 
-label_file_name = "_annotations.coco.json"
+def export_split(view, path):
+    print(f"exporting dataset split: {path}")
+    view.export(
+        dataset_type=fo.types.COCODetectionDataset,
+        export_dir=str(path),
+        labels_path="_annotations.coco.json",
+        data_path=str(path),
+        label_field="ground_truth_det",
+        export_media=True,
+        abs_paths=False,
+        overwrite=True,
+        # TODO: should use: tolerance=0, # Keeps every pixel boundary point
+    )
 
 train_path = dataset_path_2d / "train"
-train_view.export(
-    dataset_type=fo.types.COCODetectionDataset,
-    export_dir=str(train_path),
-    labels_path=label_file_name,
-    data_path=str(train_path),
-    label_field="ground_truth_det",
-    export_media=True,
-    abs_paths=False,
-    overwrite=True,
-    # TODO: should use: tolerance=0, # Keeps every pixel boundary point
-)
+export_split(train_view, train_path)
 
 test_path = dataset_path_2d / "test"
-test_view.export(
-    dataset_type=fo.types.COCODetectionDataset,
-    export_dir=str(test_path),
-    labels_path=label_file_name,
-    data_path=str(test_path),
-    label_field="ground_truth_det",
-    export_media=True,
-    abs_paths=False,
-    overwrite=True,
-    # TODO: should use: tolerance=0, # Keeps every pixel boundary point
-)
+export_split(test_view, test_path)
