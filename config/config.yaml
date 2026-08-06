@@ -1,3 +1,4 @@
+data_path_projections: "data/Projections"
 dataset_path_2d: "data/Teeth2D"
 dataset_path_3d: "data/Teeth3DS+"
 train_split: "data/train.txt"

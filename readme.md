@@ -22,15 +22,14 @@ project_root/
 ├── ...
 ├── data/
     ├── Teeth2D/
-    |   ├── images/
+    |   ├── train/
+    |   |   ├── _annotations.coco.json
     |   |   ├── 00OMSZGW_lower_elev-60_azim0.png
     |   |   └── ...
-    |   ├── masks/
-    |   |   ├── 00OMSZGW_lower_elev0_azim0.png
-    |   |   └── ...
-    |   ├── labels.json
-    |   ├── test.json
-    |   └── train.json
+    |   └── test/
+    |       ├── _annotations.coco.json
+    |       ├── 00OMSZGW_lower_elev0_azim0.png
+    |       └── ...
     ├── Teeth3DS+/
     |   └── raw/
     |       ├── lower/
