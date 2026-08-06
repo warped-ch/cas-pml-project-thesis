@@ -139,6 +139,8 @@ fo_dataset = fo.Dataset.from_importer(
   dataset_importer=dataset_importer,
   overwrite=True)
 
+fo_dataset.save()
+
 session = fo.launch_app(fo_dataset, auto=False)
 session.open_tab()
 
@@ -178,8 +180,8 @@ def save_splits(config, train_split: list[str], test_split: list[str]):
 # use the official train/test splits for now
 
 train_split, test_split = load_official_splits(config)
-print(f"train_split={len(train_split)}")
-print(f"test_split={len(test_split)}")
+print(f"train_split: {len(train_split)} samples")
+print(f"test_split: {len(test_split)} samples")
 
 save_splits(config, train_split, test_split)
 
@@ -193,23 +195,28 @@ fo_dataset = fo.load_dataset(name=str(dataset_path_2d.stem))
 # clear old split tags
 fo_dataset.untag_samples(["train", "test"])
 
+train_sample_ids = []
+test_sample_ids = []
+
+train_prefixes = set(train_split)
+test_prefixes = set(test_split)
+
 ids, filepaths = fo_dataset.values(["id", "filepath"])
+for sample_id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering train/test samples"):
+    filename = Path(filepath).name
+    
+    if any(filename.startswith(p) for p in train_prefixes):
+        train_sample_ids.append(sample_id)
+    elif any(filename.startswith(p) for p in test_prefixes):
+        test_sample_ids.append(sample_id)
 
-train_sample_ids = [
-    sample_id for sample_id, filepath in zip(ids, filepaths)
-    if any(Path(filepath).name.startswith(prefix) for prefix in set(train_split))
-]
 train_view = fo_dataset.select(train_sample_ids)
+print(f"train_view: {len(train_view)} samples")
 train_view.tag_samples("train")
-print(f"Tagged 'train' samples: {len(train_view)}")
 
-test_sample_ids = [
-    sample_id for sample_id, filepath in zip(ids, filepaths)
-    if any(Path(filepath).name.startswith(prefix) for prefix in set(test_split))
-]
 test_view = fo_dataset.select(test_sample_ids)
+print(f"test_view: {len(test_view)} samples")
 test_view.tag_samples("test")
-print(f"Tagged 'test' samples: {len(test_view)}")
 
 fo_dataset.save()
 
