@@ -71,8 +71,9 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         # - COCO export
         detections = segmentation.to_detections(mask_targets=self.mask_targets)
         # set iscrowd attribute for detections, indicates the segment encompasses a group of objects (relevant for thing categories)
-        for det in detections.detections:
-            det["iscrowd"] = 1
+        # TODO: not supported by RF-DETR segmentation models?
+        # for det in detections.detections:
+        #     det["iscrowd"] = 1
 
         label_dict = {
             "ground_truth_seg": segmentation,

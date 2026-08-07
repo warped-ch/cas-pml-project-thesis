@@ -16,6 +16,7 @@
 # # Train a RF-DETR segmentation model on Teeth2D dataset
 
 # %%
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -35,10 +36,12 @@ dataset_path_2d.mkdir(parents=True, exist_ok=True)
 print(f"dataset_path_2d={dataset_path_2d}")
 
 # %%
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
 # TODO: link this to "image_size" in config
 model = RFDETRSegMedium()
 
-output_dir = root_path / config["rf_train_output"]
+output_dir = root_path / config["rf_train_output"] / timestamp
 
 # Recommended configurations for different GPUs:
 # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size

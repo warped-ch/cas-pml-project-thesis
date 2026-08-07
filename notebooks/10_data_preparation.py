@@ -257,6 +257,7 @@ export_split(test_view, test_path)
 
 # create a dummy validation split (workaround for Roboflow RF-DETR framework requirement)
 # https://github.com/roboflow/rf-detr/issues/260
+# https://github.com/roboflow/rf-detr/issues/449
 
 valid_path = dataset_path_2d / "valid"
 valid_path.mkdir(parents=True, exist_ok=True)
