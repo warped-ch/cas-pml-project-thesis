@@ -93,10 +93,10 @@ output_dir = root_path / config["rf_train_output"] / timestamp
 # Recommended configurations for different GPUs:
 # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size
 model.train(
-    dataset_dir=str(dataset_test_path),
+    dataset_dir=str(dataset_path_2d),
     epochs=25,
     batch_size=4,
-    grad_accum_steps=4,
-    lr=1e-4,
+    grad_accum_steps=16,
+    lr=5e-5,
     output_dir=output_dir,
 )
