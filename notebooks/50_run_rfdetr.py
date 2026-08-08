@@ -13,13 +13,17 @@
 # ---
 
 # %%
-import random
+import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
+import notebook_utils as nb_utils
+import numpy as np
 import supervision as sv
 import yaml
 from rfdetr import RFDETRSegMedium
+
+sys.path.append(str(Path.cwd().parent))
+from src import file_io
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -34,22 +38,31 @@ dataset_path_2d = root_path / config.get("dataset_path_2d")
 print(f"dataset_path_2d={dataset_path_2d}")
 
 # %%
-weights_path = output_dir = root_path / config["output_rf_detr_train"] / "20260807_192533" / "checkpoint_best_ema.pth"
-print(f"weights_path={weights_path}")
-model = RFDETRSegMedium(pretrain_weights=str(weights_path))
+best_model_chkpt_path = output_dir = root_path / config["best_model_chkpt_path"]
+print(f"best_model_chkpt_path={best_model_chkpt_path}")
+model = RFDETRSegMedium(pretrain_weights=str(best_model_chkpt_path))
 
-test_images = list((dataset_path_2d / "test").rglob("*.png"))
-image_path = random.choice(test_images)
-print(f"image_path={image_path}")
+test_split_file = root_path / config["test_split"]
+print(f"test_split_file={test_split_file}")
+test_sample = file_io.read_random_line_from_file(str(test_split_file))
+print(f"test_sample={test_sample}")
 
-detections = model.predict(str(image_path), threshold=0.5)
+test_path = dataset_path_2d / "test"
+test_image_paths = list(test_path.glob(f"{test_sample}*.png"))
+print(f"test_image_paths={test_image_paths}")
 
-annotated_image = sv.MaskAnnotator().annotate(detections.metadata["source_image"], detections)
+detections = model.predict(
+  [str(p) for p in test_image_paths],
+  threshold=0.5
+)
 
-#labels = [f"{COCO_CLASSES[class_id]}" for class_id in detections.class_id]
-#annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections, labels)
+annotated_images = []
+for det in detections:
+    annotated_img = sv.MaskAnnotator().annotate(det.metadata["source_image"], det)
+    annotated_images.append(annotated_img)
 
-plt.imshow(annotated_image)
-plt.title(str(image_path.name))
-plt.axis('off')
-plt.show()
+views = np.array(config["2d_projection"]["views"])
+nb_utils.plot_image_grid(
+    images=annotated_images,
+    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
+)

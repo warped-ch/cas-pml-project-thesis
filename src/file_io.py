@@ -1,4 +1,5 @@
 import json
+import random
 
 import numpy as np
 import torch
@@ -54,3 +55,23 @@ def load_vertex_labels(
         vertex_labels = lookup[vertex_labels]
 
     return vertex_labels
+
+def read_random_line_from_file(file_path: str) -> str:
+    """
+    Reads a single random line from a file.
+
+    https://stackoverflow.com/a/3540315
+    
+    Args:
+        file_path (str): The path to the file.
+
+    Returns:
+        str: The content of one randomly selected line, stripped of whitespace.
+    """
+    with open(file_path, "r", encoding="utf-8") as file:
+        line = next(file)
+        for num, aline in enumerate(file, 2):
+            if random.randrange(num):
+                continue
+            line = aline
+        return line.strip()

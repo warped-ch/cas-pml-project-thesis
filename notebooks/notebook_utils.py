@@ -11,12 +11,15 @@ pv.set_jupyter_backend("trame")
 
 
 def plot_image_grid(
-    images: np.ndarray,
+    images: np.ndarray | list,
     background_label: float | None = None,
     titles: list[str] | None = None,
     columns: int = 3,
     cmap: str | Colormap | None = None,
 ) -> None:
+    if isinstance(images, list):
+        images = np.array(images) 
+    
     num_images = images.shape[0]
     cols = min(columns, num_images)
     rows = math.ceil(num_images / cols)
