@@ -3,6 +3,7 @@ dataset_path_2d: "data/Teeth2D"
 dataset_path_3d: "data/Teeth3DS+"
 train_split: "data/train.txt"
 test_split: "data/test.txt"
+output_rf_detr_train: "output/rf_detr_train"
 class_ids: [0, 
   11, 12, 13, 14, 15, 16, 17, 18, 
   21, 22, 23, 24, 25, 26, 27, 28, 
@@ -39,4 +40,3 @@ class_id_map:
     - [60, 45]  # bottom up back diagonal right
     - [0, -90]  # left side
     - [0, 90]   # right side
-rf_train_output: "output/rf_train"

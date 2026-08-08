@@ -53,6 +53,18 @@ project_root/
     └── train.txt
 ```
 
+## Experiment Tracking
+
+### View RF-DETR training logs
+
+- https://rfdetr.roboflow.com/latest/learn/train/loggers/#tensorboard
+
+```
+tensorboard --logdir "output/rf_detr_train"
+```
+
+Then open http://localhost:6006/ in your browser.
+
 ## Dev Setup
 
 - [Using uv with Jupyter from VSCode](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code)

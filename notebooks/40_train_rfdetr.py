@@ -88,7 +88,7 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 # TODO: link this to "image_size" in config
 model = RFDETRSegMedium()
 
-output_dir = root_path / config["rf_train_output"] / timestamp
+output_dir = root_path / config["output_rf_detr_train"] / timestamp
 
 # Recommended configurations for different GPUs:
 # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size

@@ -34,7 +34,7 @@ dataset_path_2d = root_path / config.get("dataset_path_2d")
 print(f"dataset_path_2d={dataset_path_2d}")
 
 # %%
-weights_path = output_dir = root_path / config["rf_train_output"] / "20260807_192533" / "checkpoint_best_ema.pth"
+weights_path = output_dir = root_path / config["output_rf_detr_train"] / "20260807_192533" / "checkpoint_best_ema.pth"
 print(f"weights_path={weights_path}")
 model = RFDETRSegMedium(pretrain_weights=str(weights_path))
 
