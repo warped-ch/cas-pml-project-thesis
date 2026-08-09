@@ -41,6 +41,9 @@ print(f"dataset_path_2d={dataset_path_2d}")
 best_model_chkpt_path = output_dir = root_path / config["best_model_chkpt_path"]
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 model = RFDETRSegMedium(pretrain_weights=str(best_model_chkpt_path))
+print(f"model.class_names: {model.class_names}")
+model_class_ids = {idx: name for idx, name in enumerate(model.class_names)}
+print(f"model_class_ids: {model_class_ids}")
 
 test_split_file = root_path / config["test_split"]
 print(f"test_split_file={test_split_file}")

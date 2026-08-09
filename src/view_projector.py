@@ -90,11 +90,11 @@ class ViewProjector:
     def render_2d_views(
         self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
     ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
-        images = self.render_2d_images(mesh)
+        images = self.render_2d_images_np(mesh)
         masks = self.render_2d_masks(mesh, vertex_labels)
         return images, masks
 
-    def render_2d_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+    def render_2d_images(self, mesh: Meshes) -> torch.Tensor:
         # define a default color for each vertex
         num_vertices = mesh.verts_packed().shape[0]
         verts_features = (
@@ -104,7 +104,10 @@ class ViewProjector:
         mesh.textures = TexturesVertex(verts_features=verts_features)
 
         meshes_ext = mesh.extend(self.views.shape[0])
-        images = self.image_renderer(meshes_ext)
+        return self.image_renderer(meshes_ext)
+
+    def render_2d_images_np(self, mesh: Meshes) -> NDArray[np.uint8]:
+        images = self.render_2d_images(mesh)
 
         # convert float images to grayscale, scale, and convert to uint8
         gray_images = images[..., :3].mean(dim=-1)

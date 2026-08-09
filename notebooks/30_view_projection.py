@@ -65,7 +65,7 @@ nb_utils.plot_mesh(mesh, vertex_labels)
 
 view_proj = view_projector.ViewProjector(config, device)
 
-images = view_proj.render_2d_images(mesh)
+images = view_proj.render_2d_images_np(mesh)
 
 # each row in views is [elevation, azimuth]
 views = np.array(config["2d_projection"]["views"])
