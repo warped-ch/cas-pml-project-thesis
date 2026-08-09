@@ -73,9 +73,18 @@ for i, det in enumerate(ip.detections):
 for i, mask in enumerate(ip.masks):
     cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
 
+# TODO: teeth labels are being mixed up sometimes (e.g. HZH8DYC7_lower)
 annotated_images = []
+mask_annotator = sv.MaskAnnotator(
+    #color=sv.ColorPalette.from_matplotlib("viridis", len(np.unique(vertex_labels))),
+    # TODO: custom colormap for good coloring? (viridis is good for lower, but bad for upper)
+    color=sv.ColorPalette.from_matplotlib("viridis", len(ip.model.class_names)),
+)
 for det in ip.detections:
-    annotated_img = sv.MaskAnnotator().annotate(det.metadata["source_image"], det)
+    annotated_img = mask_annotator.annotate(
+        scene=det.metadata["source_image"], 
+        detections=det
+    )
     annotated_images.append(annotated_img)
 
 views = np.array(config["2d_projection"]["views"])
