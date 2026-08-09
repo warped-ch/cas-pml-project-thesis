@@ -1,6 +1,5 @@
 from typing import Any
 
-import cv2
 import numpy as np
 import torch
 from numpy.typing import NDArray
@@ -25,11 +24,10 @@ class InferencePipeline:
         # TODO: check [WARNING] rf-detr - Model is not optimized for inference.
         # https://rfdetr.roboflow.com/latest/learn/run/segmentation/#run-on-an-image
         self.model = RFDETRSegMedium(pretrain_weights=chkpt_file, device=device)
-        print(f"model.class_names: {self.model.class_names}")
 
-        self.reverse_class_id_lookup = np.arange(256, dtype=np.uint8)
-        for old_id, new_id in self.config["class_id_map"].items():
-            self.reverse_class_id_lookup[new_id] = old_id
+        # TODO: temp stuff for debugging
+        self.detections = None
+        self.mask = None
 
     # TODO: "class_1" instead of "class_0"
     # TODO: hack?
@@ -38,9 +36,10 @@ class InferencePipeline:
         mask_value = int(class_name.split("_")[1])
         return mask_value
 
-    def run_inference(
-        self, obj_file: str, temp_out_path: str | None = None
-    ) -> tuple[Meshes, NDArray[np.uint8]]:
+    def run_inference(self, obj_file: str) -> tuple[Meshes, NDArray[np.uint8]]:
+        self.detections = None
+        self.masks = None
+
         mesh = file_io.load_mesh_origin_aligned(obj_file, device=self.device)
 
         images = self.view_projector.render_2d_images(mesh)
@@ -51,26 +50,23 @@ class InferencePipeline:
             # convert from (H, W, C) to (C, H, W): permute(0, 3, 1, 2)
             images = images[..., :3].permute(0, 3, 1, 2)
 
-        detections = self.model.predict(
+        self.detections = self.model.predict(
             images=list(images),
             threshold=0.5,
         )
 
         # TODO: avoid CPU roundtrip?
-        masks = []
-        for det in detections:
+        self.masks = []
+        for det in self.detections:
             _, h, w = det.mask.shape
             combined_mask = np.zeros((h, w), dtype=np.uint8)
             for mask, class_id in zip(det.mask, det.class_id):
                 mask_value = self.get_mask_value(class_id)
                 combined_mask[mask] = mask_value
-            masks.append(combined_mask)
-        if temp_out_path:
-            for i, mask in enumerate(masks):
-                cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
+            self.masks.append(combined_mask)
 
         vertex_labels = self.view_projector.back_project_vertex_labels(
-            mesh, np.stack(masks, axis=0)
+            mesh, np.stack(self.masks, axis=0)
         )
 
         return (mesh.cpu(), vertex_labels)

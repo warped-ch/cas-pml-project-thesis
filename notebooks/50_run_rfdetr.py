@@ -16,17 +16,21 @@
 import sys
 from pathlib import Path
 
+import cv2
 import notebook_utils as nb_utils
 import numpy as np
 import supervision as sv
+import torch
 import yaml
-from rfdetr import RFDETRSegMedium
 
 sys.path.append(str(Path.cwd().parent))
-from src import file_io
+from src import file_io, inference_pipeline
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # %%
 # load config file
@@ -34,33 +38,43 @@ print(f"root_path={root_path}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-dataset_path_2d = root_path / config.get("dataset_path_2d")
-print(f"dataset_path_2d={dataset_path_2d}")
-
-# %%
-best_model_chkpt_path = output_dir = root_path / config["best_model_chkpt_path"]
-print(f"best_model_chkpt_path={best_model_chkpt_path}")
-model = RFDETRSegMedium(pretrain_weights=str(best_model_chkpt_path))
-print(f"model.class_names: {model.class_names}")
-model_class_ids = {idx: name for idx, name in enumerate(model.class_names)}
-print(f"model_class_ids: {model_class_ids}")
+dataset_path_3d = root_path / config.get("dataset_path_3d")
+print(f"dataset_path_3d={dataset_path_3d}")
 
 test_split_file = root_path / config["test_split"]
 print(f"test_split_file={test_split_file}")
+
+best_model_chkpt_path = output_dir = root_path / config["best_model_chkpt_path"]
+print(f"best_model_chkpt_path={best_model_chkpt_path}")
+
+ip = inference_pipeline.InferencePipeline(
+  chkpt_file=str(best_model_chkpt_path),
+  config=config,
+  device=device
+)
+print(f"model.class_names: {ip.model.class_names}")
+
+# %%
 test_sample = file_io.read_random_line_from_file(str(test_split_file))
 print(f"test_sample={test_sample}")
 
-test_path = dataset_path_2d / "test"
-test_image_paths = list(test_path.glob(f"{test_sample}*.png"))
-print(f"test_image_paths={test_image_paths}")
+obj_file = str(next(dataset_path_3d.rglob(f"{test_sample}.obj")))
+print(f"obj_file={obj_file}")
 
-detections = model.predict(
-  [str(p) for p in test_image_paths],
-  threshold=0.5
-)
+temp_out_path = dataset_path_3d.parent / "temp" / Path(obj_file).stem
+print(f"temp_out_path={temp_out_path}")
+temp_out_path.mkdir(parents=True, exist_ok=True)
+
+mesh, vertex_labels = ip.run_inference(obj_file)
+# TODO: contains "0" and "1"
+print(f"class ids: {np.unique(vertex_labels)}")
+for i, det in enumerate(ip.detections):
+    cv2.imwrite(temp_out_path / f"image_{i}.png", det.metadata["source_image"])
+for i, mask in enumerate(ip.masks):
+    cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
 
 annotated_images = []
-for det in detections:
+for det in ip.detections:
     annotated_img = sv.MaskAnnotator().annotate(det.metadata["source_image"], det)
     annotated_images.append(annotated_img)
 
@@ -69,3 +83,5 @@ nb_utils.plot_image_grid(
     images=annotated_images,
     titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 )
+
+nb_utils.plot_mesh(mesh, vertex_labels)
