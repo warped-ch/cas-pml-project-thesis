@@ -94,7 +94,7 @@ output_dir = root_path / config["output_rf_detr_train"] / timestamp
 # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size
 model.train(
     dataset_dir=str(dataset_path_2d),
-    epochs=25,
+    epochs=50,
     batch_size=4,
     grad_accum_steps=16,
     lr=5e-5,
