@@ -99,6 +99,13 @@ nb_utils.plot_image_grid(
     cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
 )
 
+nb_utils.plot_image_grid(
+    images=segmentation_masks,
+    background_label=None,
+    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
+    cmap="grey",
+)
+
 for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"mask_elev{view[0]}_azim{view[1]}.png", segmentation_masks[i])
 
