@@ -5,7 +5,7 @@ dataset_path_3d: "data/Teeth3DS+"
 train_split: "data/train.txt"
 test_split: "data/test.txt"
 output_rf_detr_train: "output/rf_detr_train"
-best_model_chkpt_path: "output/rf_detr_train/20260808_205728/checkpoint_best_ema.pth"
+best_model_chkpt_path: "output/rf_detr_train/20260810_230858/checkpoint_best_ema.pth"
 
 class_ids: [0, 
   11, 12, 13, 14, 15, 16, 17, 18, 
