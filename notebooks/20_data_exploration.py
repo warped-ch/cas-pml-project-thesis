@@ -17,13 +17,14 @@
 
 # %%
 import json
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pyvista as pv
 import seaborn as sns
 import yaml
-from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from tqdm.auto import tqdm
 
 root_path = Path.cwd().parent
@@ -64,8 +65,8 @@ def get_missing_teeth(vertex_labels, vertex_label_file):
 
 
 # %%
-def load_sample(scan_file_path):
-    vertex_label_file = scan_file_path.with_suffix(".json")
+def load_sample(obj_file_path):
+    vertex_label_file = obj_file_path.with_suffix(".json")
     if not vertex_label_file.exists():
         print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
         return None
@@ -79,9 +80,9 @@ def load_sample(scan_file_path):
 
     return {
         "id_patient": json_data.get("id_patient", None),
-        "scan_file": scan_file_path.name,
+        "obj_file": obj_file_path.name,
         "vertex_label_file": str(vertex_label_file) if vertex_label_file else None,
-        "jaw_type": "lower" if "lower" in scan_file_path.name else "upper",
+        "jaw_type": "lower" if "lower" in obj_file_path.name else "upper",
         "num_vertex_labels": len(vertex_labels) if vertex_labels is not None else pd.NA,
         "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
         "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
@@ -96,20 +97,13 @@ dataset_path = root_path / config.get("dataset_path_3d")
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
-scan_files = list(dataset_path.rglob("*.obj"))
+obj_files = list(dataset_path.rglob("*.obj"))
 
-# multiprocessing drops execution time from ~25s to ~23s
-with ThreadPoolExecutor() as executor:
-    data = list(
-        tqdm(
-            executor.map(load_sample, scan_files),
-            total=len(scan_files),
-            desc="Creating DataFrame",
-        )
-    )
-
-# Remove None values from the list
-data = [d for d in data if d is not None]
+data = []
+for f in tqdm(obj_files, desc="Creating DataFrame"):
+    result = load_sample(f)
+    if result is not None:
+        data.append(result)
 
 # %%
 # create the DataFrame
@@ -175,16 +169,26 @@ missing_ids_lower = list(ids_upper - ids_lower)
 print(f"missing_ids_upper={missing_ids_upper}")
 print(f"missing_ids_lower={missing_ids_lower}")
 
+# %% [markdown]
+# ## Check 3D meshes / model files
+
 # %%
 # check if obj mesh already has color/material attributes
-
 mesh_has_material = 0
+# check for model base
+has_model_base = 0
 
-for obj_file in tqdm(scan_files, desc="Checking mesh for material"):
+for obj_file in tqdm(obj_files, desc="Checking mesh for material"):
     with open(obj_file, 'r', encoding='utf-8') as file:
         content = file.read()
         if "mtl" in content.lower():
             print(f"Mesh has material: {obj_file}")
             mesh_has_material += 1
+    # TODO: check for model base
+    # mesh = pv.read(obj_file)
+    # if not mesh.is_manifold:
+    #     has_model_base += 1
 
+print(f"obj_files={len(obj_files)}")
 print(f"mesh_has_material={mesh_has_material}")
+print(f"has_model_base={has_model_base}")
