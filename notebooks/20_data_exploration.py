@@ -17,12 +17,13 @@
 
 # %%
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import open3d as o3d
 import pandas as pd
-import pyvista as pv
 import seaborn as sns
 import yaml
 from tqdm.auto import tqdm
@@ -61,15 +62,27 @@ def get_missing_teeth(vertex_labels, vertex_label_file):
         return None
 
     missing_teeth = set(fdi_set).difference(vertex_labels)
-    return sorted(list(missing_teeth))
+    return sorted(missing_teeth)
 
 
 # %%
-def load_sample(obj_file_path):
-    vertex_label_file = obj_file_path.with_suffix(".json")
+def load_sample(obj_file):
+    vertex_label_file = obj_file.with_suffix(".json")
     if not vertex_label_file.exists():
         print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
         return None
+
+    # TODO: this won't work, some bases are open on the bottom...
+    mesh_is_manifold = False
+    # mesh = o3d.io.read_triangle_mesh(obj_file)
+    # mesh_is_manifold = mesh.is_edge_manifold() and mesh.is_vertex_manifold()
+
+    mesh_has_material = False
+    with open(obj_file, 'r', encoding='utf-8') as file:
+        content = file.read()
+        if "mtl" in content.lower():
+            mesh_has_material= True
+            print(f"Mesh has material: {obj_file}")
 
     json_data = {}
     if vertex_label_file:
@@ -80,13 +93,15 @@ def load_sample(obj_file_path):
 
     return {
         "id_patient": json_data.get("id_patient", None),
-        "obj_file": obj_file_path.name,
+        "obj_file": obj_file.name,
         "vertex_label_file": str(vertex_label_file) if vertex_label_file else None,
-        "jaw_type": "lower" if "lower" in obj_file_path.name else "upper",
+        "jaw_type": "lower" if "lower" in obj_file.name else "upper",
         "num_vertex_labels": len(vertex_labels) if vertex_labels is not None else pd.NA,
         "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
         "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
         "missing_teeth": get_missing_teeth(vertex_labels, vertex_label_file),
+        "has_model_base": mesh_is_manifold,
+        "mesh_has_material": mesh_has_material,
     }
 
 
@@ -99,11 +114,17 @@ assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
 obj_files = list(dataset_path.rglob("*.obj"))
 
-data = []
-for f in tqdm(obj_files, desc="Creating DataFrame"):
-    result = load_sample(f)
-    if result is not None:
-        data.append(result)
+with ThreadPoolExecutor() as executor:
+    data = list(
+        tqdm(
+            executor.map(load_sample, obj_files),
+            total=len(obj_files),
+            desc="Creating DataFrame",
+        )
+    )
+
+# Remove None values from the list
+data = [d for d in data if d is not None]
 
 # %%
 # create the DataFrame
@@ -153,6 +174,22 @@ plt.show()
 df.groupby("jaw_type")["missing_teeth"].describe()
 
 # %% [markdown]
+# ## Model / Mesh properties
+
+# %%
+# TODO: check for model base
+
+sns.countplot(df, x="has_model_base", hue="jaw_type")
+plt.show()
+
+df.groupby("jaw_type")["has_model_base"].describe()
+
+# %%
+# check if obj mesh already has color/material attributes
+
+df["mesh_has_material"].describe()
+
+# %% [markdown]
 # ## Potential dataset inconsistencies
 
 # %%
@@ -168,27 +205,3 @@ missing_ids_upper = list(ids_lower - ids_upper)
 missing_ids_lower = list(ids_upper - ids_lower)
 print(f"missing_ids_upper={missing_ids_upper}")
 print(f"missing_ids_lower={missing_ids_lower}")
-
-# %% [markdown]
-# ## Check 3D meshes / model files
-
-# %%
-# check if obj mesh already has color/material attributes
-mesh_has_material = 0
-# check for model base
-has_model_base = 0
-
-for obj_file in tqdm(obj_files, desc="Checking mesh for material"):
-    with open(obj_file, 'r', encoding='utf-8') as file:
-        content = file.read()
-        if "mtl" in content.lower():
-            print(f"Mesh has material: {obj_file}")
-            mesh_has_material += 1
-    # TODO: check for model base
-    # mesh = pv.read(obj_file)
-    # if not mesh.is_manifold:
-    #     has_model_base += 1
-
-print(f"obj_files={len(obj_files)}")
-print(f"mesh_has_material={mesh_has_material}")
-print(f"has_model_base={has_model_base}")
