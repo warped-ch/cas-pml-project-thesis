@@ -71,13 +71,14 @@ class ViewProjector:
             device=self.device,
         )
 
+        # balance light color channels that the sum never exceeds 1.0 (prevent saturated spots from clipping)
         lights = DirectionalLights(
             direction=light_dir,
-            ambient_color=((0.5, 0.5, 0.5),),
-            diffuse_color=((0.5, 0.5, 0.5),),
-            specular_color=(
-                (0.2, 0.2, 0.2),
-            ),  # reduced specular highlight to keep tooth boundaries matte
+            # keep details in interdental spaces visible
+            ambient_color=((0.25, 0.25, 0.25),),
+            diffuse_color=((0.70, 0.70, 0.70),),
+            # reduced specular highlight to keep tooth boundaries matte
+            specular_color=((0.05, 0.05, 0.05),),
             device=self.device,
         )
 
