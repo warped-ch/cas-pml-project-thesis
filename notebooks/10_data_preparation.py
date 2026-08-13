@@ -17,6 +17,7 @@
 
 # %%
 import json
+import random
 import shutil
 import sys
 from pathlib import Path
@@ -170,11 +171,13 @@ def load_official_splits(config) -> tuple[list[str], list[str]]:
 
     return train_split, test_split
 
-def save_splits(config, train_split: list[str], test_split: list[str]):
+def save_splits(config, train_split: list[str], test_split: list[str], val_split: list[str]):
     with open(root_path / config["train_split"], 'w', encoding='utf-8') as f:
         f.write('\n'.join(train_split))
     with open(root_path / config["test_split"], 'w', encoding='utf-8') as f:
         f.write('\n'.join(test_split))
+    with open(root_path / config["val_split"], 'w', encoding='utf-8') as f:
+        f.write('\n'.join(val_split))
 
 
 # %%
@@ -184,7 +187,22 @@ train_split, test_split = load_official_splits(config)
 print(f"train_split: {len(train_split)} samples")
 print(f"test_split: {len(test_split)} samples")
 
-save_splits(config, train_split, test_split)
+# ignore potentially private test set (challenge) and split train into train/test/val
+
+public_train_split = train_split
+
+random.seed(42)
+random.shuffle(public_train_split)
+num_samples = len(public_train_split)
+train_end = int(num_samples * 0.8)
+test_end = int(num_samples * 0.9)
+
+train_split = public_train_split[:train_end]
+test_split = public_train_split[train_end:test_end]
+val_split = public_train_split[test_end:]
+print(f"train_split: {len(train_split)}, test_split: {len(test_split)}, val_split: {len(val_split)}")
+
+save_splits(config, train_split, test_split, val_split)
 
 # %%
 # update Teeth2D dataset with train/test split tags
@@ -194,22 +212,26 @@ dataset_path_2d = root_path / config["dataset_path_2d"]
 fo_dataset = fo.load_dataset(name=str(dataset_path_2d.stem))
 
 # clear old split tags
-fo_dataset.untag_samples(["train", "test"])
+fo_dataset.untag_samples(["train", "test", "val"])
 
 train_sample_ids = []
 test_sample_ids = []
+val_sample_ids = []
 
 train_prefixes = set(train_split)
 test_prefixes = set(test_split)
+val_prefixes = set(val_split)
 
 ids, filepaths = fo_dataset.values(["id", "filepath"])
-for sample_id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering train/test samples"):
+for sample_id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering train/test/val samples"):
     filename = Path(filepath).name
     
     if any(filename.startswith(p) for p in train_prefixes):
         train_sample_ids.append(sample_id)
     elif any(filename.startswith(p) for p in test_prefixes):
         test_sample_ids.append(sample_id)
+    elif any(filename.startswith(p) for p in val_prefixes):
+        val_sample_ids.append(sample_id)
 
 train_view = fo_dataset.select(train_sample_ids)
 print(f"train_view: {len(train_view)} samples")
@@ -218,6 +240,10 @@ train_view.tag_samples("train")
 test_view = fo_dataset.select(test_sample_ids)
 print(f"test_view: {len(test_view)} samples")
 test_view.tag_samples("test")
+
+val_view = fo_dataset.select(val_sample_ids)
+print(f"val_view: {len(val_view)} samples")
+val_view.tag_samples("val")
 
 fo_dataset.save()
 
@@ -228,7 +254,7 @@ session.open_tab()
 # ### Export Teeth2D dataset
 
 # %%
-# export Teeth2D COCO dataset train/test splits
+# export Teeth2D COCO dataset train/test/val splits
 
 # consider RF-DETR dataset format requirements:
 # https://rfdetr.roboflow.com/latest/learn/train/dataset-formats/#dataset-formats
@@ -255,19 +281,23 @@ export_split(train_view, train_path)
 test_path = dataset_path_2d / "test"
 export_split(test_view, test_path)
 
-# create a dummy validation split (workaround for Roboflow RF-DETR framework requirement)
-# https://github.com/roboflow/rf-detr/issues/260
-# https://github.com/roboflow/rf-detr/issues/449
+val_path = dataset_path_2d / "valid"
+export_split(val_view, val_path)
 
-valid_path = dataset_path_2d / "valid"
-valid_path.mkdir(parents=True, exist_ok=True)
-print(f"valid_path={valid_path}")
+# TODO: handle val split conditionally
+# # create a dummy validation split (workaround for Roboflow RF-DETR framework requirement)
+# # https://github.com/roboflow/rf-detr/issues/260
+# # https://github.com/roboflow/rf-detr/issues/449
 
-valid_dummy = {
-    "images": [],
-    "annotations": [],
-    "categories": []
-}
+# valid_path = dataset_path_2d / "valid"
+# valid_path.mkdir(parents=True, exist_ok=True)
+# print(f"valid_path={valid_path}")
 
-with open(valid_path / "_annotations.coco.json", "w", encoding="utf-8") as f:
-    json.dump(valid_dummy, f)
+# valid_dummy = {
+#     "images": [],
+#     "annotations": [],
+#     "categories": []
+# }
+
+# with open(valid_path / "_annotations.coco.json", "w", encoding="utf-8") as f:
+#     json.dump(valid_dummy, f)

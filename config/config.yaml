@@ -4,6 +4,7 @@ dataset_path_2d: "data/Teeth2D"
 dataset_path_3d: "data/Teeth3DS+"
 train_split: "data/train.txt"
 test_split: "data/test.txt"
+val_split: "data/val.txt"
 output_rf_detr_train: "output/rf_detr_train"
 best_model_chkpt_path: "output/rf_detr_train/20260810_230858/checkpoint_best_ema.pth"
 
