@@ -72,7 +72,8 @@ class ViewProjector:
             device=self.device,
         )
 
-        blend_params = BlendParams(background_color=(1.0, 1.0, 1.0))
+        bg_rgb_val = self.background_value / 255.0
+        blend_params = BlendParams(background_color=(bg_rgb_val, bg_rgb_val, bg_rgb_val))
 
         return MeshRenderer(
             rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
