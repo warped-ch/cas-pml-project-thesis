@@ -10,6 +10,38 @@ from pytorch3d.structures import Meshes
 pv.set_jupyter_backend("trame")
 
 
+def plot_histogram_grid(
+    images: np.ndarray | list,
+    background_value: int | None = None,
+    bins: int = np.iinfo(np.uint8).max + 1,
+    titles: list[str] | None = None,
+    columns: int = 3,
+) -> None:
+    if isinstance(images, list):
+        images = np.array(images)
+
+    num_images = images.shape[0]
+    cols = min(columns, num_images)
+    rows = math.ceil(num_images / cols)
+
+    fig, axarr = plt.subplots(rows, cols, figsize=(12, 12))
+    for i, ax in enumerate(axarr.flat):
+        if i < num_images:
+            values = images[i].flatten()
+            if background_value is not None:
+                values = values[values != background_value]
+            ax.hist(values, bins=bins, range=(0, bins))
+            ax.set_xlim(0, bins)
+            if titles:
+                ax.set_title(titles[i])
+        else:
+            # hide unused plots
+            ax.axis("off")
+            ax.set_visible(False)
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_image_grid(
     images: np.ndarray | list,
     background_label: float | None = None,
@@ -18,11 +50,12 @@ def plot_image_grid(
     cmap: str | Colormap | None = None,
 ) -> None:
     if isinstance(images, list):
-        images = np.array(images) 
-    
+        images = np.array(images)
+
     num_images = images.shape[0]
     cols = min(columns, num_images)
     rows = math.ceil(num_images / cols)
+
     fig, axarr = plt.subplots(rows, cols, figsize=(12, 12))
     for i, ax in enumerate(axarr.flat):
         if i < num_images:
@@ -36,7 +69,7 @@ def plot_image_grid(
                 ax.set_title(titles[i])
         else:
             # hide unused plots
-            ax.axis('off') 
+            ax.axis("off")
             ax.set_visible(False)
     plt.tight_layout()
     plt.show()

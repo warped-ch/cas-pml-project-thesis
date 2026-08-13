@@ -70,11 +70,17 @@ images = view_proj.render_2d_images_np(mesh)
 # each row in views is [elevation, azimuth]
 views = np.array(config["2d_projection"]["views"])
 
+titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
     images=images,
     background_label=None,
-    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
+    titles=titles,
     cmap="gray"
+)
+nb_utils.plot_histogram_grid(
+    images=images,
+    background_value=config["2d_projection"]["background_value"],
+    titles=titles,
 )
 
 temp_out_path = dataset_path.parent / "temp" / obj_file.stem
@@ -91,18 +97,17 @@ segmentation_masks = view_proj.render_2d_masks(mesh, vertex_labels)
 print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
 # visualize segmentation masks
-
+titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
     images=segmentation_masks,
     background_label=config["2d_projection"]["background_value"],
-    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
+    titles=titles,
     cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
 )
-
 nb_utils.plot_image_grid(
     images=segmentation_masks,
     background_label=None,
-    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
+    titles=titles,
     cmap="grey",
 )
 

@@ -45,9 +45,9 @@ class ViewProjector:
         cameras = FoVOrthographicCameras(
             znear=0.1,
             zfar=100.0,
-            max_y=ortho_size,   
+            max_y=ortho_size,
             min_y=-ortho_size,
-            max_x=ortho_size,   
+            max_x=ortho_size,
             min_x=-ortho_size,
             R=R,
             T=T,
@@ -58,6 +58,7 @@ class ViewProjector:
             image_size=self.config["2d_projection"]["image_size"],
             blur_radius=0.0,
             faces_per_pixel=1,
+            cull_backfaces=True,
         )
 
         self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
@@ -83,7 +84,9 @@ class ViewProjector:
         )
 
         bg_rgb_val = self.background_value / 255.0
-        blend_params = BlendParams(background_color=(bg_rgb_val, bg_rgb_val, bg_rgb_val))
+        blend_params = BlendParams(
+            background_color=(bg_rgb_val, bg_rgb_val, bg_rgb_val)
+        )
 
         return MeshRenderer(
             rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
