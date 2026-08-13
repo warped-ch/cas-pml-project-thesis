@@ -35,7 +35,9 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         for cid in self.config["class_ids"]:
             old_id = int(cid)
             new_id = class_id_map.get(old_id, old_id) if class_id_map else old_id
-            self.mask_targets[new_id] = f"class_{new_id}"
+            # keep the old class id encoded in class name, will be used to restore original class id when generating final predicted mask
+            self.mask_targets[new_id] = f"class_{old_id}"
+        print(f"mask_targets={self.mask_targets}")
 
         self._dataset_root = Path(dataset_dir)
         self._images_dir = self._dataset_root / "images"
