@@ -58,7 +58,8 @@ class ViewProjector:
             image_size=self.config["2d_projection"]["image_size"],
             blur_radius=0.0,
             faces_per_pixel=1,
-            cull_backfaces=True,
+            # TODO: fix backside rendering of mesh: requires same label as frontside
+            cull_backfaces=False,
         )
 
         self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
