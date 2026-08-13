@@ -16,8 +16,6 @@
 # # Train a RF-DETR segmentation model on Teeth2D dataset
 
 # %%
-import json
-import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -52,5 +50,7 @@ model.train(
     batch_size=4,
     grad_accum_steps=8,
     lr=2.5e-5,
+    # TODO: disable for final training run
+    use_ema=False,
     output_dir=output_dir,
 )
