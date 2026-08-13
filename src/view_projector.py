@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from pytorch3d.renderer import (
     BlendParams,
     DirectionalLights,
-    FoVPerspectiveCameras,
+    FoVOrthographicCameras,
     MeshRasterizer,
     MeshRenderer,
     RasterizationSettings,
@@ -36,10 +36,19 @@ class ViewProjector:
             device=self.device,
         )
 
-        cameras = FoVPerspectiveCameras(
+        # calc orthographic bounds (from perspective fov and dist)
+        # Formula: 80 * tan(60 / 2 * pi / 180) = 46.188
+        ortho_size = self.config["2d_projection"]["distance"] * np.tan(
+            self.config["2d_projection"]["fov"] / 2.0 * np.pi / 180.0
+        )
+
+        cameras = FoVOrthographicCameras(
             znear=0.1,
             zfar=100.0,
-            fov=self.config["2d_projection"]["fov"],
+            max_y=ortho_size,   
+            min_y=-ortho_size,
+            max_x=ortho_size,   
+            min_x=-ortho_size,
             R=R,
             T=T,
             device=self.device,
