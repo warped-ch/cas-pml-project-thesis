@@ -53,6 +53,7 @@ ip = inference_pipeline.InferencePipeline(
   device=device
 )
 print(f"model.class_names: {ip.model.class_names}")
+print(f"model.model_config.resolution: {ip.model.model_config.resolution}")
 
 # %%
 test_sample = file_io.read_random_line_from_file(str(test_split_file))
@@ -88,9 +89,9 @@ for det in ip.detections:
     annotated_images.append(annotated_img)
 
 views = np.array(config["2d_projection"]["views"])
+
+nb_utils.plot_mesh(mesh, vertex_labels)
 nb_utils.plot_image_grid(
     images=annotated_images,
     titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 )
-
-nb_utils.plot_mesh(mesh, vertex_labels)

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -21,9 +22,13 @@ class InferencePipeline:
 
         self.view_projector = view_projector.ViewProjector(config=config, device=device)
 
-        # TODO: check [WARNING] rf-detr - Model is not optimized for inference.
-        # https://rfdetr.roboflow.com/latest/learn/run/segmentation/#run-on-an-image
-        self.model = RFDETRSegMedium(pretrain_weights=chkpt_file, device=device)
+        if Path(chkpt_file).suffix == ".pth":
+            # TODO: check [WARNING] rf-detr - Model is not optimized for inference.
+            # https://rfdetr.roboflow.com/latest/learn/run/segmentation/#run-on-an-image
+            self.model = RFDETRSegMedium(pretrain_weights=chkpt_file, device=device)
+        elif Path(chkpt_file).suffix == ".ckpt":
+            # TODO: not working yet
+            self.model = RFDETRSegMedium.from_checkpoint(path=chkpt_file, device=device)
 
         # TODO: temp stuff for debugging
         self.detections = None
