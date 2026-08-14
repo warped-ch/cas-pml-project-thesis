@@ -21,6 +21,7 @@ from pathlib import Path
 
 import yaml
 from rfdetr import RFDETRSegMedium
+from rfdetr.datasets.aug_configs import AUG_CONSERVATIVE
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -47,10 +48,13 @@ output_dir = root_path / config["output_rf_detr_train"] / timestamp
 model.train(
     dataset_dir=str(dataset_path_2d),
     epochs=100,
-    batch_size=4,
-    grad_accum_steps=8,
-    lr=2.5e-5,
+    batch_size=8,
+    grad_accum_steps=2,
+    lr=1e-4,
+    aug_config=AUG_CONSERVATIVE,
+    multi_scale=False,
     # TODO: disable for final training run
     use_ema=False,
+    pin_memory=True,
     output_dir=output_dir,
 )
