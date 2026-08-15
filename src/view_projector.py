@@ -10,7 +10,7 @@ from pytorch3d.renderer import (
     MeshRasterizer,
     MeshRenderer,
     RasterizationSettings,
-    SoftPhongShader,
+    HardPhongShader,
     TexturesVertex,
     camera_position_from_spherical_angles,
     look_at_view_transform,
@@ -58,7 +58,6 @@ class ViewProjector:
             image_size=self.config["2d_projection"]["image_size"],
             blur_radius=0.0,
             faces_per_pixel=1,
-            # TODO: fix backside rendering of mesh: requires same label as frontside
             cull_backfaces=False,
         )
 
@@ -77,10 +76,10 @@ class ViewProjector:
         lights = DirectionalLights(
             direction=light_dir,
             # keep details in interdental spaces visible
-            ambient_color=((0.25, 0.25, 0.25),),
-            diffuse_color=((0.70, 0.70, 0.70),),
+            ambient_color=((0.3, 0.3, 0.3),),
+            diffuse_color=((0.6, 0.6, 0.6),),
             # reduced specular highlight to keep tooth boundaries matte
-            specular_color=((0.05, 0.05, 0.05),),
+            specular_color=((0.1, 0.1, 0.1),),
             device=self.device,
         )
 
@@ -91,7 +90,7 @@ class ViewProjector:
 
         return MeshRenderer(
             rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
-            shader=SoftPhongShader(
+            shader=HardPhongShader(
                 cameras=cameras,
                 lights=lights,
                 blend_params=blend_params,
@@ -110,6 +109,9 @@ class ViewProjector:
         return images, masks
 
     def render_2d_images(self, mesh: Meshes) -> torch.Tensor:
+        # TODO: the inside of the mesh is now visible but still "flat" (no structure visible of the inside of gingiva)
+        # example: C4LOTSKE_upper.obj
+
         # define a default color for each vertex
         num_vertices = mesh.verts_packed().shape[0]
         verts_features = (
