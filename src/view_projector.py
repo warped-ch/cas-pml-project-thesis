@@ -3,14 +3,15 @@ from typing import Any
 import numpy as np
 import torch
 from numpy.typing import NDArray
+from pytorch3d.ops import cot_laplacian
 from pytorch3d.renderer import (
     BlendParams,
     DirectionalLights,
     FoVOrthographicCameras,
+    HardPhongShader,
     MeshRasterizer,
     MeshRenderer,
     RasterizationSettings,
-    HardPhongShader,
     TexturesVertex,
     camera_position_from_spherical_angles,
     look_at_view_transform,
@@ -62,7 +63,23 @@ class ViewProjector:
         )
 
         self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
+
         self.mask_rasterizer = self.__init_mask_rasterizer(cameras, raster_settings)
+
+        self.curvature_renderer = MeshRenderer(
+            rasterizer=self.image_renderer.rasterizer,
+            shader=HardPhongShader(
+                cameras=cameras,
+                lights=DirectionalLights(
+                    ambient_color=((1.0, 1.0, 1.0),),
+                    diffuse_color=((0.0, 0.0, 0.0),),
+                    specular_color=((0.0, 0.0, 0.0),),
+                    device=self.device,
+                ),
+                blend_params=self.image_renderer.shader.blend_params,
+                device=self.device,
+            ),
+        )
 
     def __init_image_renderer(self, cameras, raster_settings) -> MeshRenderer:
         light_dir = camera_position_from_spherical_angles(
@@ -172,7 +189,7 @@ class ViewProjector:
 
     def render_depth_images(self, mesh: Meshes) -> NDArray[np.uint8]:
         """
-        Renders depth maps and converts them to normalized depth images.
+        Renders depth maps of the mesh and converts them to normalized depth images.
             - brighter pixels are closer to the camera and background is black (0)
             - global normalization is applied across all views
         """
@@ -207,6 +224,57 @@ class ViewProjector:
             depth_images[~mask] = 0
 
         return depth_images.cpu().numpy()
+
+    def render_curvature_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+        """
+        Renders mean curvature maps of the mesh and converts them to normalized depth images.
+            - High curvature (ridges/valleys) appears bright.
+            - Low curvature (flat areas) appears dark.
+        """
+        verts = mesh.verts_packed()
+        faces = mesh.faces_packed()
+
+        # Compute the Cotangent Laplacian
+        # L is the sparse Laplacian matrix, inv_areas are the Voronoi areas
+        L, inv_areas = cot_laplacian(verts, faces)
+
+        # Compute the Mean Curvature Vector: H = -1/2 * L * Verts
+        # The magnitude of this vector is proportional to the mean curvature
+        curvature_vec = L.mm(verts) * inv_areas
+        curvature = torch.norm(curvature_vec, dim=1)
+
+        # Normalization
+        # Curvature can have extreme outliers.
+        # Use a robust normalization (percentiles) to ensure the map has good contrast.
+        if curvature.numel() > 0:
+            # Flatten to 1D to get global values
+            flat_curvature = curvature.view(-1)
+            # Calculate quantiles
+            # We use 'dim=0' because we want the quantile of the whole list
+            q = torch.quantile(
+                flat_curvature, torch.tensor([0.05, 0.95], device=self.device)
+            )
+            c_min, c_max = q[0], q[1]
+            # Normalize
+            curvature = (curvature - c_min) / (c_max - c_min + 1e-6)
+            curvature = curvature.clamp(0, 1)
+
+        # Create Texture (Grayscale)
+        # Expand curvature to (V, 3) to represent RGB
+        verts_rgb = curvature.unsqueeze(1).repeat(1, 3)
+        # We create a temporary copy of the mesh to apply curvature textures
+        curv_mesh = mesh.clone()
+        curv_mesh.textures = TexturesVertex(verts_features=verts_rgb.unsqueeze(0))
+
+        # Render
+        meshes_ext = curv_mesh.extend(self.views.shape[0])
+        images = self.curvature_renderer(meshes_ext)
+
+        # Convert to uint8 grayscale
+        gray_images = images[..., :3].mean(dim=-1)
+        uint8_images = (gray_images * 255.0).clamp(0, 255).to(torch.uint8)
+
+        return uint8_images.cpu().numpy()
 
     def back_project_vertex_labels(
         self, mesh: Meshes, masks: NDArray[np.uint8]

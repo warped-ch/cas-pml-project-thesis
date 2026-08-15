@@ -60,6 +60,9 @@ vertex_labels = file_io.load_vertex_labels(json_file, config["class_id_map"])
 
 nb_utils.plot_mesh(mesh, vertex_labels)
 
+# %% [markdown]
+# ## Render images
+
 # %%
 # render 2D projection
 
@@ -90,9 +93,10 @@ temp_out_path.mkdir(parents=True, exist_ok=True)
 for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"view_elev{view[0]}_azim{view[1]}.png", images[i])
 
-# %%
-# render 2D projection label masks
+# %% [markdown]
+# ## Render label masks
 
+# %%
 segmentation_masks = view_proj.render_2d_masks(mesh, vertex_labels)
 print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
@@ -100,15 +104,15 @@ print(f"segmentation_masks.shape={segmentation_masks.shape}")
 titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
     images=segmentation_masks,
-    background_label=config["2d_projection"]["background_value"],
-    titles=titles,
-    cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
-)
-nb_utils.plot_image_grid(
-    images=segmentation_masks,
     background_label=None,
     titles=titles,
     cmap="grey",
+)
+nb_utils.plot_image_grid(
+    images=segmentation_masks,
+    background_label=config["2d_projection"]["background_value"],
+    titles=titles,
+    cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
 )
 
 for i, view in enumerate(views):
@@ -118,8 +122,6 @@ for i, view in enumerate(views):
 # ## Render Depth Images
 
 # %%
-# render depth maps
-
 depth_images = view_proj.render_depth_images(mesh)
 print(f"depth_images.shape={depth_images.shape}")
 
@@ -137,6 +139,28 @@ nb_utils.plot_histogram_grid(
 
 for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"depth_elev{view[0]}_azim{view[1]}.png", depth_images[i])
+
+# %% [markdown]
+# ## Render Curvature Images
+
+# %%
+curvature_images = view_proj.render_curvature_images(mesh)
+print(f"curvature_images.shape={curvature_images.shape}")
+
+nb_utils.plot_image_grid(
+    images=curvature_images,
+    background_label=None,
+    titles=titles,
+    cmap="grey",
+)
+nb_utils.plot_histogram_grid(
+    images=curvature_images,
+    background_value=config["2d_projection"]["background_value"],
+    titles=titles,
+)
+
+for i, view in enumerate(views):
+    cv2.imwrite(temp_out_path / f"curvature_elev{view[0]}_azim{view[1]}.png", curvature_images[i])
 
 # %%
 # roundtrip: back projection of ground truth masks to mesh vertex labels
