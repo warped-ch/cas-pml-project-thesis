@@ -16,7 +16,6 @@
 # # Data Preparation
 
 # %%
-import json
 import random
 import shutil
 import sys
@@ -89,7 +88,7 @@ for obj_file in obj_files:
 # %% [markdown]
 # ## Multi-View Projection Rendering
 #
-# - Render multi-view projections of the 3D models.
+# - Render multi-view projections of the 3D models as composite feature images
 # - Save view and mask images.
 
 # %%
@@ -112,7 +111,7 @@ obj_files = list(dataset_path_3d.rglob("*.obj"))
 for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
     mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
     vertex_labels = file_io.load_vertex_labels(obj_file.with_suffix(".json"), class_id_map)
-    images, masks = view_proj.render_2d_views(mesh, vertex_labels)
+    images, masks = view_proj.render_2d_views_composite_feature_images(mesh, vertex_labels)
 
     for image, mask, view in zip(images, masks, view_proj.views):
         elev = view[0]

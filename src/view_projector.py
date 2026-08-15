@@ -125,6 +125,32 @@ class ViewProjector:
         masks = self.render_2d_masks(mesh, vertex_labels)
         return images, masks
 
+    def render_2d_views_composite_feature_images(
+        self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
+    ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
+        """
+        Render multi-view projections of the mesh as composite feature images:
+            - channel[0]: grayscale image
+            - channel[1]: depth image
+            - channel[2]: curvature image
+
+        Returns:
+            composite_feature_images: NDArray (N_views, H, W, 3)
+            masks: NDArray (N_views, H, W)
+        """
+        images = self.render_2d_images_np(mesh)
+        depth_images = self.render_depth_images(mesh)
+        curvature_images = self.render_curvature_images(mesh)
+
+        # stack the feature images along the last dimension to create an "RGB" style image
+        composite_feature_images = np.stack(
+            [images, depth_images, curvature_images], axis=-1
+        )
+
+        masks = self.render_2d_masks(mesh, vertex_labels)
+
+        return composite_feature_images, masks
+
     def render_2d_images(self, mesh: Meshes) -> torch.Tensor:
         # TODO: the inside of the mesh is now visible but still "flat" (no structure visible of the inside of gingiva)
         # example: C4LOTSKE_upper.obj
