@@ -170,6 +170,44 @@ class ViewProjector:
         # generate the final 2D segmentation mask
         return face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
 
+    def render_depth_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+        """
+        Renders depth maps and converts them to normalized depth images.
+            - brighter pixels are closer to the camera and background is black (0)
+            - global normalization is applied across all views
+        """
+        meshes_ext = mesh.extend(self.views.shape[0])
+
+        # get fragments (pix_to_face contains the face index for each pixel)
+        fragments = self.mask_rasterizer(meshes_ext)
+
+        # zbuf shape: (N_views, H, W), raw distance from camera plane (closer = smaller value)
+        zbuf = fragments.zbuf[..., 0]
+
+        # create a mask for the actual geometry (PyTorch3D uses -1 for background)
+        mask = zbuf > 0
+
+        # initialize output tensor
+        depth_images = torch.zeros_like(zbuf, dtype=torch.uint8, device=self.device)
+
+        if mask.any():
+            # get min/max of valid geometry only
+            d_min = zbuf[mask].min()
+            d_max = zbuf[mask].max()
+
+            # invert and scale:
+            # - (d_max - zbuf) makes the nearest point the largest value
+            # - scale to range [0 255]
+            normalized = 255.0 * (d_max - zbuf) / (d_max - d_min)
+
+            # clamp to ensure we stay in uint8 range and cast
+            depth_images = normalized.clamp(0, 255).to(torch.uint8)
+
+            # force background pixels back to 0
+            depth_images[~mask] = 0
+
+        return depth_images.cpu().numpy()
+
     def back_project_vertex_labels(
         self, mesh: Meshes, masks: NDArray[np.uint8]
     ) -> NDArray[np.uint8]:

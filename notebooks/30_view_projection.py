@@ -114,6 +114,30 @@ nb_utils.plot_image_grid(
 for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"mask_elev{view[0]}_azim{view[1]}.png", segmentation_masks[i])
 
+# %% [markdown]
+# ## Render Depth Images
+
+# %%
+# render depth maps
+
+depth_images = view_proj.render_depth_images(mesh)
+print(f"depth_images.shape={depth_images.shape}")
+
+nb_utils.plot_image_grid(
+    images=depth_images,
+    background_label=None,
+    titles=titles,
+    cmap="grey",
+)
+nb_utils.plot_histogram_grid(
+    images=depth_images,
+    background_value=config["2d_projection"]["background_value"],
+    titles=titles,
+)
+
+for i, view in enumerate(views):
+    cv2.imwrite(temp_out_path / f"depth_elev{view[0]}_azim{view[1]}.png", depth_images[i])
+
 # %%
 # roundtrip: back projection of ground truth masks to mesh vertex labels
 
