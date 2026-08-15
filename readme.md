@@ -57,6 +57,8 @@ project_root/
 
 ## Experiment Tracking
 
+see [Notes on experiments](doc/experiments.md) for details. 
+
 ### View RF-DETR training logs
 
 - https://rfdetr.roboflow.com/latest/learn/train/loggers/#tensorboard
