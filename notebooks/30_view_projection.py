@@ -122,7 +122,7 @@ for i, view in enumerate(views):
 # ## Render Depth Images
 
 # %%
-depth_images = view_proj.render_depth_images(mesh)
+depth_images = view_proj.render_depth_images_np(mesh)
 print(f"depth_images.shape={depth_images.shape}")
 
 nb_utils.plot_image_grid(
@@ -144,7 +144,7 @@ for i, view in enumerate(views):
 # ## Render Curvature Images
 
 # %%
-curvature_images = view_proj.render_curvature_images(mesh)
+curvature_images = view_proj.render_curvature_images_np(mesh)
 print(f"curvature_images.shape={curvature_images.shape}")
 
 nb_utils.plot_image_grid(

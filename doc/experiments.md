@@ -1,5 +1,31 @@
 # Notes on Experiments
 
+## rf-detr/
+
+[](../output/rf_detr_train/)
+
+```
+
+```
+
+## rf-detr/20260815_213112
+
+[20260815_213112](../output/rf_detr_train/20260815_213112)
+
+- fix mesh backside rendering (still room for improvement)
+- use composite feature images for Teeth2D dataset (grayscale, depth, curvature)
+
+```
+epochs=100,
+batch_size=8,
+grad_accum_steps=2,
+lr=1e-4,
+aug_config=AUG_CONSERVATIVE,
+multi_scale=False,
+use_ema=False,
+pin_memory=True,
+```
+
 ## rf-detr/20260814_201756
 
 [20260814_201756](../output/rf_detr_train/20260814_201756)

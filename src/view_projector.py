@@ -125,7 +125,28 @@ class ViewProjector:
         masks = self.render_2d_masks(mesh, vertex_labels)
         return images, masks
 
-    def render_2d_views_composite_feature_images(
+    def render_2d_views_composite_feature_images(self, mesh: Meshes) -> torch.Tensor:
+        """
+        Render multi-view projections of the mesh as composite feature images:
+            - channel[0]: grayscale image
+            - channel[1]: depth image
+            - channel[2]: curvature image
+
+        Returns:
+            float Tensor of shape (Batch, H, W, C)
+        """
+        images = self.render_2d_images(mesh)
+        depth_images = self.render_depth_images(mesh)
+        curvature_images = self.render_curvature_images(mesh)
+
+        # stack the feature images along the last dimension to create an "RGB" style image
+        composite_feature_images = torch.stack(
+            [images, depth_images, curvature_images], dim=-1
+        )
+
+        return composite_feature_images
+
+    def render_2d_views_composite_feature_images_np(
         self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
     ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
         """
@@ -139,8 +160,8 @@ class ViewProjector:
             masks: NDArray (N_views, H, W)
         """
         images = self.render_2d_images_np(mesh)
-        depth_images = self.render_depth_images(mesh)
-        curvature_images = self.render_curvature_images(mesh)
+        depth_images = self.render_depth_images_np(mesh)
+        curvature_images = self.render_curvature_images_np(mesh)
 
         # stack the feature images along the last dimension to create an "RGB" style image
         composite_feature_images = np.stack(
@@ -164,14 +185,20 @@ class ViewProjector:
         mesh.textures = TexturesVertex(verts_features=verts_features)
 
         meshes_ext = mesh.extend(self.views.shape[0])
-        return self.image_renderer(meshes_ext)
+
+        images = self.image_renderer(meshes_ext)
+        # remove alpha channel: images[..., :3]
+        images = images[..., :3]
+        # convert to single channel
+        images = images[..., :3].mean(dim=-1)
+
+        return images
 
     def render_2d_images_np(self, mesh: Meshes) -> NDArray[np.uint8]:
         images = self.render_2d_images(mesh)
 
-        # convert float images to grayscale, scale, and convert to uint8
-        gray_images = images[..., :3].mean(dim=-1)
-        uint8_images = (gray_images * 255.0).clamp(0, 255).to(torch.uint8)
+        # convert float images to grayscale uint8
+        uint8_images = (images * 255.0).clamp(0, 255).to(torch.uint8)
 
         # bring the entire batch to CPU and convert to NumPy
         return uint8_images.cpu().numpy()
@@ -213,11 +240,16 @@ class ViewProjector:
         # generate the final 2D segmentation mask
         return face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
 
-    def render_depth_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+    def render_depth_images(self, mesh: Meshes) -> torch.Tensor:
         """
         Renders depth maps of the mesh and converts them to normalized depth images.
-            - brighter pixels are closer to the camera and background is black (0)
+            - brighter pixels (1.0) are closer to the camera
+            - darker pixels (0.0) are farther away
+            - background is black (0.0)
             - global normalization is applied across all views
+
+        Returns:
+            float32 tensor in range [0.0, 1.0]
         """
         meshes_ext = mesh.extend(self.views.shape[0])
 
@@ -231,31 +263,37 @@ class ViewProjector:
         mask = zbuf > 0
 
         # initialize output tensor
-        depth_images = torch.zeros_like(zbuf, dtype=torch.uint8, device=self.device)
+        depth_images = torch.zeros_like(zbuf, dtype=torch.float32, device=self.device)
 
         if mask.any():
-            # get min/max of valid geometry only
-            d_min = zbuf[mask].min()
-            d_max = zbuf[mask].max()
+            # get global min and max of valid geometry across all views
+            valid_depths = zbuf[mask]
+            d_min = valid_depths.min()
+            d_max = valid_depths.max()
+            # normalize and invert:
+            # - (d_max - valid_depths) makes the nearest point the largest value
+            depth_images[mask] = (d_max - valid_depths) / (d_max - d_min)
 
-            # invert and scale:
-            # - (d_max - zbuf) makes the nearest point the largest value
-            # - scale to range [0 255]
-            normalized = 255.0 * (d_max - zbuf) / (d_max - d_min)
+        return depth_images
 
-            # clamp to ensure we stay in uint8 range and cast
-            depth_images = normalized.clamp(0, 255).to(torch.uint8)
+    def render_depth_images_np(self, mesh: Meshes) -> NDArray[np.uint8]:
+        depth_images = self.render_depth_images(mesh)
 
-            # force background pixels back to 0
-            depth_images[~mask] = 0
+        # scale to range [0 255]
+        # use .round() before casting to uint8 to prevent precision loss
+        depth_images_uint8 = (depth_images * 255.0).round().to(torch.uint8)
 
-        return depth_images.cpu().numpy()
+        return depth_images_uint8.cpu().numpy()
 
-    def render_curvature_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+    def render_curvature_images(self, mesh: Meshes) -> torch.Tensor:
         """
-        Renders mean curvature maps of the mesh and converts them to normalized depth images.
-            - High curvature (ridges/valleys) appears bright.
-            - Low curvature (flat areas) appears dark.
+        Renders mean curvature maps of the mesh and converts them to normalized float images.
+            - High curvature (ridges/valleys) appears bright (1.0).
+            - Low curvature (flat areas) appears dark (0.0).
+            - global normalization is applied across all views
+
+        Returns:
+            float32 tensor in range [0.0, 1.0]
         """
         verts = mesh.verts_packed()
         faces = mesh.faces_packed()
@@ -265,7 +303,6 @@ class ViewProjector:
         L, inv_areas = cot_laplacian(verts, faces)
 
         # Compute the Mean Curvature Vector: H = -1/2 * L * Verts
-        # The magnitude of this vector is proportional to the mean curvature
         curvature_vec = L.mm(verts) * inv_areas
         curvature = torch.norm(curvature_vec, dim=1)
 
@@ -275,17 +312,17 @@ class ViewProjector:
         if curvature.numel() > 0:
             # Flatten to 1D to get global values
             flat_curvature = curvature.view(-1)
-            # Calculate quantiles
-            # We use 'dim=0' because we want the quantile of the whole list
+            # Calculate quantiles to handle outliers
             q = torch.quantile(
                 flat_curvature, torch.tensor([0.05, 0.95], device=self.device)
             )
             c_min, c_max = q[0], q[1]
-            # Normalize
+
+            # Normalize to [0, 1]
             curvature = (curvature - c_min) / (c_max - c_min + 1e-6)
             curvature = curvature.clamp(0, 1)
 
-        # Create Texture (Grayscale)
+        # Create Texture (grayscale)
         # Expand curvature to (V, 3) to represent RGB
         verts_rgb = curvature.unsqueeze(1).repeat(1, 3)
         # We create a temporary copy of the mesh to apply curvature textures
@@ -296,11 +333,22 @@ class ViewProjector:
         meshes_ext = curv_mesh.extend(self.views.shape[0])
         images = self.curvature_renderer(meshes_ext)
 
-        # Convert to uint8 grayscale
-        gray_images = images[..., :3].mean(dim=-1)
-        uint8_images = (gray_images * 255.0).clamp(0, 255).to(torch.uint8)
+        # Extract grayscale component
+        # images is (N, H, W, 4) or (N, H, W, 3)
+        # Since R=G=B, we just take the first channel
+        curvature_images = images[..., 0]
 
-        return uint8_images.cpu().numpy()
+        # Final clamp to ensure background or interpolation doesn't exceed [0, 1]
+        return curvature_images.clamp(0.0, 1.0)
+
+    def render_curvature_images_np(self, mesh: Meshes) -> NDArray[np.uint8]:
+        curvature_images = self.render_curvature_images(mesh)
+
+        # scale to range [0 255]
+        # use .round() before casting to uint8 to prevent precision loss
+        depth_images_uint8 = (curvature_images * 255.0).round().to(torch.uint8)
+
+        return depth_images_uint8.cpu().numpy()
 
     def back_project_vertex_labels(
         self, mesh: Meshes, masks: NDArray[np.uint8]
