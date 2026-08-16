@@ -47,15 +47,18 @@ class InferencePipeline:
 
         mesh = file_io.load_mesh_origin_aligned(obj_file, device=self.device)
 
-        images = self.view_projector.render_2d_images(mesh)
+        images = self.view_projector.render_2d_images_tensor(mesh)
 
-        # tensor from render_2d_images is in (Batch, H, W, C) format
+        # tensor from render_2d_images_tensor is in (Batch, H, W, 3) format
         if isinstance(images, torch.Tensor) and images.dim() == 4:
-            print(f"run_inference: images.shape={images.shape}, images.dim={images.dim()}")
-            # remove alpha channel: images[..., :3]
+            print(
+                f"run_inference: images.shape={images.shape}, images.dim={images.dim()}"
+            )
             # convert from (H, W, C) to (C, H, W): permute(0, 3, 1, 2)
-            images = images[..., :3].permute(0, 3, 1, 2)
-            print(f"run_inference: images.shape={images.shape}, images.dim={images.dim()}")
+            images = images.permute(0, 3, 1, 2)
+            print(
+                f"run_inference: images.shape={images.shape}, images.dim={images.dim()}"
+            )
 
         self.detections = self.model.predict(
             images=list(images),

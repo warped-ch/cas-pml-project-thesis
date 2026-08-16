@@ -105,11 +105,18 @@ class ViewProjector:
     def render_2d_views(
         self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
     ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
-        images = self.render_2d_images_np(mesh)
+        images = self.render_2d_images(mesh)
         masks = self.render_2d_masks(mesh, vertex_labels)
         return images, masks
 
-    def render_2d_images(self, mesh: Meshes) -> torch.Tensor:
+    def render_2d_images_tensor(self, mesh: Meshes) -> torch.Tensor:
+        """
+        Render multi-view projections of the mesh as images.
+
+        Returns:
+            torch.Tensor: The rendered images (RGB) batch of shape (B, H, W, 3),
+                where B is the batch size (number of views)
+        """
         # TODO: the inside of the mesh is now visible but still "flat" (no structure visible of the inside of gingiva)
         # example: C4LOTSKE_upper.obj
 
@@ -123,13 +130,15 @@ class ViewProjector:
 
         meshes_ext = mesh.extend(self.views.shape[0])
 
-        return self.image_renderer(meshes_ext)
+        images = self.image_renderer(meshes_ext)
+        # ignore alpha channel
+        return images[..., :3]
 
-    def render_2d_images_np(self, mesh: Meshes) -> NDArray[np.uint8]:
-        images = self.render_2d_images(mesh)
+    def render_2d_images(self, mesh: Meshes) -> NDArray[np.uint8]:
+        images = self.render_2d_images_tensor(mesh)
 
-        # convert float images to grayscale, scale, and convert to uint8
-        gray_images = images[..., :3].mean(dim=-1)
+        # convert RGB to grayscale by averaging
+        gray_images = images.mean(dim=-1)
         uint8_images = (gray_images * 255.0).clamp(0, 255).to(torch.uint8)
 
         # bring the entire batch to CPU and convert to NumPy
@@ -138,10 +147,12 @@ class ViewProjector:
     def render_2d_masks(
         self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
     ) -> NDArray[np.uint8]:
-        # render 2D projection label masks (face index rasterization)
-        # Instead of rendering colors and guessing pixels, this method uses PyTorch3D’s rasterizer to determine exactly
-        # which face index is visible at every pixel. It then maps that face back to its vertex labels.
+        """
+        Render multi-view projection label masks using face index rasterization.
 
+        Instead of rendering colors and guessing pixels, this method uses PyTorch3D's rasterizer to determine exactly
+        which face index is visible at every pixel. It then maps that face back to its vertex labels.
+        """
         meshes_ext = mesh.extend(self.views.shape[0])
 
         # get fragments (pix_to_face contains the face index for each pixel)
@@ -160,7 +171,7 @@ class ViewProjector:
         # TODO, which method?
         # define face label by taking the first vertex
         face_labels = face_vert_labels[:, 0]  # Shape: (F,)
-        # define face label by majority vote (or taking the first vertex)
+        # define face label by majority vote
         # face_labels = torch.mode(face_vert_labels, dim=1).values # Shape: (F,)
         face_labels = face_labels.repeat(self.views.shape[0])
 
@@ -178,7 +189,8 @@ class ViewProjector:
         """
         Project 2D mask labels back to 3D mesh vertices using face indexing.
 
-        masks: Shape (N_views, H, W)
+        masks: shape (B, H, W)
+            where B is the batch size (number of views)
         """
         # num_classes must be the max label value + 1, not the count of unique labels
         # this ensures the voting matrix is wide enough so that every label value can be used as a direct column index
