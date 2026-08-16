@@ -60,9 +60,10 @@ vertex_labels = file_io.load_vertex_labels(json_file, config["class_id_map"])
 
 nb_utils.plot_mesh(mesh, vertex_labels)
 
-# %%
-# render 2D projection
+# %% [markdown]
+# ## Render images
 
+# %%
 view_proj = view_projector.ViewProjector(config, device)
 
 images = view_proj.render_2d_images_np(mesh)
@@ -90,9 +91,10 @@ temp_out_path.mkdir(parents=True, exist_ok=True)
 for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"view_elev{view[0]}_azim{view[1]}.png", images[i])
 
-# %%
-# render 2D projection label masks
+# %% [markdown]
+# ## Render label masks
 
+# %%
 segmentation_masks = view_proj.render_2d_masks(mesh, vertex_labels)
 print(f"segmentation_masks.shape={segmentation_masks.shape}")
 
@@ -100,15 +102,15 @@ print(f"segmentation_masks.shape={segmentation_masks.shape}")
 titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
     images=segmentation_masks,
-    background_label=config["2d_projection"]["background_value"],
-    titles=titles,
-    cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
-)
-nb_utils.plot_image_grid(
-    images=segmentation_masks,
     background_label=None,
     titles=titles,
     cmap="grey",
+)
+nb_utils.plot_image_grid(
+    images=segmentation_masks,
+    background_label=config["2d_projection"]["background_value"],
+    titles=titles,
+    cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
 )
 
 for i, view in enumerate(views):

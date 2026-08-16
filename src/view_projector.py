@@ -7,10 +7,10 @@ from pytorch3d.renderer import (
     BlendParams,
     DirectionalLights,
     FoVOrthographicCameras,
+    HardPhongShader,
     MeshRasterizer,
     MeshRenderer,
     RasterizationSettings,
-    HardPhongShader,
     TexturesVertex,
     camera_position_from_spherical_angles,
     look_at_view_transform,
@@ -62,6 +62,7 @@ class ViewProjector:
         )
 
         self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
+
         self.mask_rasterizer = self.__init_mask_rasterizer(cameras, raster_settings)
 
     def __init_image_renderer(self, cameras, raster_settings) -> MeshRenderer:
@@ -121,6 +122,7 @@ class ViewProjector:
         mesh.textures = TexturesVertex(verts_features=verts_features)
 
         meshes_ext = mesh.extend(self.views.shape[0])
+
         return self.image_renderer(meshes_ext)
 
     def render_2d_images_np(self, mesh: Meshes) -> NDArray[np.uint8]:
