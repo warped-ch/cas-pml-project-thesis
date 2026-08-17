@@ -44,7 +44,7 @@ print(f"dataset_path_3d={dataset_path_3d}")
 test_split_file = root_path / config["test_split"]
 print(f"test_split_file={test_split_file}")
 
-best_model_chkpt_path = output_dir = root_path / config["best_model_chkpt_path"]
+best_model_chkpt_path = root_path / config["best_model_chkpt_path"]
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
 ip = inference_pipeline.InferencePipeline(

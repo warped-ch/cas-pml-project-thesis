@@ -6,6 +6,7 @@ train_split: "data/train.txt"
 test_split: "data/test.txt"
 val_split: "data/val.txt"
 output_rf_detr_train: "output/rf_detr_train"
+output_rf_detr_test: "output/rf_detr_test"
 best_model_chkpt_path: "output/rf_detr_train/20260814_201756/checkpoint_best_total.pth"
 
 class_ids: [0, 
