@@ -16,7 +16,6 @@
 # # Data Preparation
 
 # %%
-import random
 import shutil
 import sys
 from pathlib import Path
@@ -151,10 +150,15 @@ session.open_tab()
 
 # %%
 def load_official_splits(config) -> tuple[list[str], list[str]]:
-    base_path = root_path / config["dataset_path_3d"] / "raw" / "Teeth3DS_train_test_split"
+    """
+    Loads the official "3D Teeth Seg Challenge" train/test split:
+        - train split: publicly available for training
+        - test split: private test split (during challenge) for evaluation
+    """
+    base_path = root_path / config["dataset_path_3d"] / "raw" / "3DTeethSeg22_challenge_train_test_split"
 
-    train_files = ["training_lower.txt", "training_upper.txt"]
-    test_files = ["testing_lower.txt", "testing_upper.txt"]
+    train_files = ["public-training-set-1.txt", "public-training-set-2.txt"]
+    test_files = ["private-testing-set.txt"]
 
     def load_files(filenames: list[str]) -> list[str]:
         data = []
@@ -182,23 +186,14 @@ def save_splits(config, train_split: list[str], test_split: list[str], val_split
 # %%
 # use the official train/test splits for now
 
-train_split, test_split = load_official_splits(config)
-print(f"train_split: {len(train_split)} samples")
-print(f"test_split: {len(test_split)} samples")
+official_train_split, official_test_split = load_official_splits(config)
+print(f"official_train_split: {len(official_train_split)} samples")
+print(f"official_test_split: {len(official_test_split)} samples")
 
-# ignore potentially private test set (challenge) and split train into train/test/val
-
-public_train_split = train_split
-
-random.seed(42)
-random.shuffle(public_train_split)
-num_samples = len(public_train_split)
-train_end = int(num_samples * 0.8)
-test_end = int(num_samples * 0.9)
-
-train_split = public_train_split[:train_end]
-test_split = public_train_split[train_end:test_end]
-val_split = public_train_split[test_end:]
+# train on full public train split (skip val for now), use test for evaluation
+train_split = official_train_split
+test_split = official_test_split
+val_split = []
 print(f"train_split: {len(train_split)}, test_split: {len(test_split)}, val_split: {len(val_split)}")
 
 save_splits(config, train_split, test_split, val_split)
@@ -274,29 +269,6 @@ def export_split(view, path):
         # TODO: should use: tolerance=0, # Keeps every pixel boundary point
     )
 
-train_path = dataset_path_2d / "train"
-export_split(train_view, train_path)
-
-test_path = dataset_path_2d / "test"
-export_split(test_view, test_path)
-
-val_path = dataset_path_2d / "valid"
-export_split(val_view, val_path)
-
-# TODO: handle val split conditionally
-# # create a dummy validation split (workaround for Roboflow RF-DETR framework requirement)
-# # https://github.com/roboflow/rf-detr/issues/260
-# # https://github.com/roboflow/rf-detr/issues/449
-
-# valid_path = dataset_path_2d / "valid"
-# valid_path.mkdir(parents=True, exist_ok=True)
-# print(f"valid_path={valid_path}")
-
-# valid_dummy = {
-#     "images": [],
-#     "annotations": [],
-#     "categories": []
-# }
-
-# with open(valid_path / "_annotations.coco.json", "w", encoding="utf-8") as f:
-#     json.dump(valid_dummy, f)
+export_split(train_view, dataset_path_2d / "train")
+export_split(test_view, dataset_path_2d / "test")
+export_split(val_view, dataset_path_2d / "valid")
