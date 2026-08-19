@@ -182,8 +182,6 @@ def save_splits(config, train_split: list[str], test_split: list[str], val_split
     with open(root_path / config["val_split"], 'w', encoding='utf-8') as f:
         f.write('\n'.join(val_split))
 
-
-# %%
 # use the official train/test splits for now
 
 official_train_split, official_test_split = load_official_splits(config)
@@ -199,50 +197,66 @@ print(f"train_split: {len(train_split)}, test_split: {len(test_split)}, val_spli
 save_splits(config, train_split, test_split, val_split)
 
 # %%
-# update Teeth2D dataset with train/test split tags
+# update Teeth2D dataset sample tags:
+#  - split tags: train, test, val
+#  - jaw tags: lower, upper
 
 dataset_path_2d = root_path / config["dataset_path_2d"]
 
 fo_dataset = fo.load_dataset(name=str(dataset_path_2d.stem))
 
 # clear old split tags
-fo_dataset.untag_samples(["train", "test", "val"])
+fo_dataset.untag_samples(["train", "test", "val", "lower", "upper"])
 
-train_sample_ids = []
-test_sample_ids = []
-val_sample_ids = []
+sample_split_prefixes = {
+    "train": set(train_split),
+    "test": set(test_split),
+    "val": set(val_split),
+}
 
-train_prefixes = set(train_split)
-test_prefixes = set(test_split)
-val_prefixes = set(val_split)
+split_sample_ids = {
+    "train": [],
+    "test": [],
+    "val": [],
+}
+
+jaw_sample_ids = {
+    "lower": [],
+    "upper": [],
+}
 
 ids, filepaths = fo_dataset.values(["id", "filepath"])
-for sample_id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering train/test/val samples"):
+for id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering for sample tags"):
     filename = Path(filepath).name
-    
-    if any(filename.startswith(p) for p in train_prefixes):
-        train_sample_ids.append(sample_id)
-    elif any(filename.startswith(p) for p in test_prefixes):
-        test_sample_ids.append(sample_id)
-    elif any(filename.startswith(p) for p in val_prefixes):
-        val_sample_ids.append(sample_id)
 
-train_view = fo_dataset.select(train_sample_ids)
-print(f"train_view: {len(train_view)} samples")
-train_view.tag_samples("train")
+    # filter samples for dataset splits
+    if any(filename.startswith(p) for p in sample_split_prefixes["train"]):
+        split_sample_ids["train"].append(id)
+    elif any(filename.startswith(p) for p in sample_split_prefixes["test"]):
+        split_sample_ids["test"].append(id)
+    elif any(filename.startswith(p) for p in sample_split_prefixes["val"]):
+        split_sample_ids["val"].append(id)
+    else:
+        print(f"⚠️ unknown dataset split for sample: {filename}")
 
-test_view = fo_dataset.select(test_sample_ids)
-print(f"test_view: {len(test_view)} samples")
-test_view.tag_samples("test")
+    # filter samples for jaw
+    if "lower" in filename.lower():
+        jaw_sample_ids["lower"].append(id)
+    elif "upper" in filename.lower():
+        jaw_sample_ids["upper"].append(id)
+    else:
+        print(f"⚠️ unknown jaw for sample: {filename}")
 
-val_view = fo_dataset.select(val_sample_ids)
-print(f"val_view: {len(val_view)} samples")
-val_view.tag_samples("val")
+for split, ids in split_sample_ids.items():
+    view = fo_dataset.select(ids)
+    print(f"view_{split}: {len(view)} samples")
+    view.tag_samples(split)
 
-fo_dataset.save()
+for jaw, ids in jaw_sample_ids.items():
+    view = fo_dataset.select(ids)
+    print(f"view_{jaw}: {len(view)} samples")
+    view.tag_samples(jaw)
 
-session = fo.launch_app(fo_dataset, auto=False)
-session.open_tab()
 
 # %% [markdown]
 # ### Export Teeth2D dataset
@@ -263,12 +277,17 @@ def export_split(view, path):
         labels_path="_annotations.coco.json",
         data_path=str(path),
         label_field="ground_truth_det",
+        # export_media="symlink" might save some disk space but won't speed things up
         export_media=True,
         abs_paths=False,
         overwrite=True,
         # TODO: should use: tolerance=0, # Keeps every pixel boundary point
     )
 
-export_split(train_view, dataset_path_2d / "train")
-export_split(test_view, dataset_path_2d / "test")
-export_split(val_view, dataset_path_2d / "valid")
+for split in ["train", "test", "val"]:
+    view = fo_dataset.match_tags(split)
+    export_split(view, dataset_path_2d / split)
+
+# %%
+session = fo.launch_app(fo_dataset, auto=False)
+session.open_tab()
