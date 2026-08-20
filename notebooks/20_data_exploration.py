@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import open3d as o3d
 import pandas as pd
@@ -66,16 +67,69 @@ def get_missing_teeth(vertex_labels, vertex_label_file):
 
 
 # %%
+def has_model_base(obj_file):
+    if not obj_file.exists():
+        print(f"⚠️ obj_file does not exist: {obj_file}")
+    mesh = o3d.io.read_triangle_mesh(str(obj_file))
+
+    # Get boundary edges (allow_boundary_edges=False returns boundary + non-manifold)
+    boundary_edges = np.asarray(mesh.get_non_manifold_edges(allow_boundary_edges=False))
+    if len(boundary_edges) == 0:
+        return True 
+
+    # Get the largest boundary chain
+    G = nx.Graph()
+    G.add_edges_from(boundary_edges)
+    largest_indices = list(max(nx.connected_components(G), key=len))
+    points = np.asarray(mesh.vertices)[largest_indices]
+
+    # Convert boundary vertices into a PointCloud
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    # remove outliers  (e.g. for DNSRP767_upper.obj, 018XZVD6_upper.obj)
+    _, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+    points = points[ind]
+
+    # PCA (using eigh for symmetric matrices, this avoids the "+0j" complex number issue)
+    mean = np.mean(points, axis=0)
+    centered_points = points - mean
+    cov = np.cov(centered_points.T)
+    eigenvalues, _ = np.linalg.eigh(cov)
+
+    # Planarity (smallest eigenvalue / sum of all)
+    planarity = eigenvalues[0] / sum(eigenvalues)
+    #print(f"has_model_base: planarity={planarity}")
+
+    visualize = False
+    if visualize:
+        # Paint the main mesh grey and semi-transparent
+        mesh.paint_uniform_color([0.8, 0.8, 0.8])
+        # Paint Inliers green
+        inlier_pcd = pcd.select_by_index(ind)
+        inlier_pcd.paint_uniform_color([0, 1, 0]) 
+        # Paint Outliers red
+        outlier_pcd = pcd.select_by_index(ind, invert=True)
+        outlier_pcd.paint_uniform_color([1, 0, 0])
+        o3d.visualization.draw_geometries(
+            [mesh, inlier_pcd, outlier_pcd], 
+            window_name=f"Base Detection {str(obj_file.name)})"
+        )
+
+    # If planarity is very low, it's most probably a flat model base
+    return planarity < 1e-6
+
+# print(f"has_model_base: {has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\lower\DNSRP767\DNSRP767_lower.obj"))}")
+# print(f"has_model_base: {has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\upper\DNSRP767\DNSRP767_upper.obj"))}")
+# print(f"has_model_base: {has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\lower\018XZVD6\018XZVD6_lower.obj"))}")
+# print(f"has_model_base: {has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\upper\018XZVD6\018XZVD6_upper.obj"))}")
+
+
+# %%
 def load_sample(obj_file):
     vertex_label_file = obj_file.with_suffix(".json")
     if not vertex_label_file.exists():
         print(f"⚠️ vertex_label_file does not exist: '{vertex_label_file}'")
         return None
-
-    # TODO: this won't work, some bases are open on the bottom...
-    mesh_is_manifold = False
-    # mesh = o3d.io.read_triangle_mesh(obj_file)
-    # mesh_is_manifold = mesh.is_edge_manifold() and mesh.is_vertex_manifold()
 
     mesh_has_material = False
     with open(obj_file, 'r', encoding='utf-8') as file:
@@ -100,7 +154,7 @@ def load_sample(obj_file):
         "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
         "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
         "missing_teeth": get_missing_teeth(vertex_labels, vertex_label_file),
-        "has_model_base": mesh_is_manifold,
+        "has_model_base": has_model_base(obj_file),
         "mesh_has_material": mesh_has_material,
     }
 
@@ -177,12 +231,18 @@ df.groupby("jaw_type")["missing_teeth"].describe()
 # ## Model / Mesh properties
 
 # %%
-# TODO: check for model base
+# balace of models with and without model base
 
 sns.countplot(df, x="has_model_base", hue="jaw_type")
 plt.show()
 
 df.groupby("jaw_type")["has_model_base"].describe()
+
+# check consistency
+has_base_mismatches = df.groupby('id_patient').filter(lambda x: x['has_model_base'].nunique() > 1)
+if len(has_base_mismatches):
+    has_base_mismatches.info()
+    has_base_mismatches.head()
 
 # %%
 # check if obj mesh already has color/material attributes

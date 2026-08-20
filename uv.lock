@@ -2962,6 +2962,14 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762", size = 2068504, upload-time = "2025-12-08T17:02:38.159Z" },
 ]
 
+[package.optional-dependencies]
+default = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+]
+
 [[package]]
 name = "numpy"
 version = "2.5.1"
@@ -3607,6 +3615,7 @@ dependencies = [
     { name = "ipywidgets" },
     { name = "jupytext" },
     { name = "matplotlib" },
+    { name = "networkx", extra = ["default"] },
     { name = "numpy" },
     { name = "open3d" },
     { name = "opencv-python" },
@@ -3635,6 +3644,7 @@ requires-dist = [
     { name = "ipywidgets", specifier = ">=8.1.8" },
     { name = "jupytext", specifier = ">=1.19.3" },
     { name = "matplotlib", specifier = ">=3.10.9" },
+    { name = "networkx", extras = ["default"], specifier = ">=3.6.1" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "open3d", specifier = ">=0.19.0" },
     { name = "opencv-python", specifier = ">=5.0.0.93" },
