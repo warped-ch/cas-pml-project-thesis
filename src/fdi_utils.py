@@ -16,7 +16,7 @@ FDI_LOWER_RIGHT_TO_LEFT = [
 
 FDI_UPPER_SET = set(FDI_UPPER_RIGHT_TO_LEFT)
 FDI_LOWER_SET = set(FDI_LOWER_RIGHT_TO_LEFT)
-FDI_ALL_TEETH = FDI_UPPER_SET.union(FDI_LOWER_SET)
+FDI_ALL_TEETH = sorted(FDI_UPPER_SET | FDI_LOWER_SET)
 
 def get_missing_teeth(vertex_labels, vertex_label_file: str) -> set[int]:
     if vertex_labels is None:

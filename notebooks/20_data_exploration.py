@@ -159,7 +159,7 @@ df_missing_teeth = df_missing_teeth.reset_index(drop=True)
 
 plt.figure(figsize=(12, 6))
 sns.histplot(df_missing_teeth, x="missing_teeth", hue="jaw", binwidth=1, discrete=True)
-plt.xticks(range(11, 49), rotation=45)
+plt.xticks(fdi_utils.FDI_ALL_TEETH, rotation=45)
 plt.show()
 
 df.groupby("jaw")["missing_teeth"].describe()
