@@ -3613,6 +3613,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fiftyone" },
     { name = "ipywidgets" },
+    { name = "joblib" },
     { name = "jupytext" },
     { name = "matplotlib" },
     { name = "networkx", extra = ["default"] },
@@ -3642,6 +3643,7 @@ dev = [
 requires-dist = [
     { name = "fiftyone", specifier = ">=1.19.0" },
     { name = "ipywidgets", specifier = ">=8.1.8" },
+    { name = "joblib", specifier = ">=1.5.3" },
     { name = "jupytext", specifier = ">=1.19.3" },
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "networkx", extras = ["default"], specifier = ">=3.6.1" },

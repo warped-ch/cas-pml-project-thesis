@@ -16,10 +16,8 @@
 # # Exploratory Data Analysis (EDA)
 
 # %%
-import itertools
 import json
 import sys
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -27,6 +25,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import yaml
+from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
@@ -99,19 +98,10 @@ official_train_split, official_test_split = teeth3ds_utils.load_official_splits(
 
 obj_files = list(dataset_path.rglob("*.obj"))
 
-with ThreadPoolExecutor() as executor:
-    data = list(
-        tqdm(
-            executor.map(
-                load_sample, 
-                obj_files, 
-                itertools.repeat(official_train_split), 
-                itertools.repeat(official_test_split)
-            ),
-            total=len(obj_files),
-            desc="Creating DataFrame",
-        )
-    )
+data = Parallel(n_jobs=-1)(
+    delayed(load_sample)(obj, official_train_split, official_test_split)
+    for obj in tqdm(obj_files, desc="Processing samples")
+)
 
 # Remove None values from the list
 original_len = len(data)
