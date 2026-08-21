@@ -1,5 +1,14 @@
 # Notes on Experiments
 
+
+## rf-detr/
+
+[](../output/rf_detr_train/)
+
+```py
+
+```
+
 ## rf-detr/20260814_201756
 
 [20260814_201756](../output/rf_detr_train/20260814_201756)
