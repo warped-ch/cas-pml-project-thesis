@@ -173,6 +173,15 @@ df.groupby("jaw")["missing_teeth"].describe()
 sns.countplot(df, x="has_model_base", hue="jaw")
 plt.show()
 
+sns.catplot(
+    data=df,
+    kind="count",
+    x="has_model_base",
+    hue="jaw",
+    col="official_split"
+)
+plt.show()
+
 df.groupby("jaw")["has_model_base"].describe()
 
 # check consistency
