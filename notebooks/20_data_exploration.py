@@ -146,10 +146,9 @@ def load_sample(obj_file):
     vertex_labels = np.array(json_data["labels"]) if "labels" in json_data else None
 
     return {
+        "obj_file": str(obj_file),
         "id_patient": json_data.get("id_patient", None),
-        "obj_file": obj_file.name,
-        "vertex_label_file": str(vertex_label_file) if vertex_label_file else None,
-        "jaw_type": "lower" if "lower" in obj_file.name else "upper",
+        "jaw": "lower" if "lower" in obj_file.name else "upper",
         "num_vertex_labels": len(vertex_labels) if vertex_labels is not None else pd.NA,
         "num_gingiva_vertex_labels": np.sum(vertex_labels == 0) if vertex_labels is not None else pd.NA,
         "num_tooth_vertex_labels": np.sum(vertex_labels != 0) if vertex_labels is not None else pd.NA,
@@ -187,30 +186,38 @@ df = pd.DataFrame(data)
 
 # automatic type converion (automatically converts None/NaN into pd.NA for integer columns)
 df = df.convert_dtypes()
+df.to_csv(str(dataset_path.parent / "eda.csv"), index=False)
 
 df.info()
 df.head()
+
+# %%
+# save required metadata
+
+meta_file = root_path / config.get("metadata")
+df_meta = df[["obj_file", "id_patient", "jaw", "has_model_base"]]
+df_meta.to_csv(str(meta_file), index=False)
 
 # %% [markdown]
 # ## Vertex label distribution
 
 # %%
-sns.histplot(df, x="num_vertex_labels", hue="jaw_type")
+sns.histplot(df, x="num_vertex_labels", hue="jaw")
 plt.show()
 
-df.groupby("jaw_type")["num_vertex_labels"].describe()
+df.groupby("jaw")["num_vertex_labels"].describe()
 
 # %%
-sns.histplot(df, x="num_gingiva_vertex_labels", hue="jaw_type")
+sns.histplot(df, x="num_gingiva_vertex_labels", hue="jaw")
 plt.show()
 
-df.groupby("jaw_type")["num_gingiva_vertex_labels"].describe()
+df.groupby("jaw")["num_gingiva_vertex_labels"].describe()
 
 # %%
-sns.histplot(df, x="num_tooth_vertex_labels", hue="jaw_type")
+sns.histplot(df, x="num_tooth_vertex_labels", hue="jaw")
 plt.show()
 
-df.groupby("jaw_type")["num_tooth_vertex_labels"].describe()
+df.groupby("jaw")["num_tooth_vertex_labels"].describe()
 
 # %%
 # filter out rows where 'missing_teeth' is NaN/None
@@ -221,11 +228,11 @@ df_missing_teeth = df_missing_teeth.explode("missing_teeth")
 df_missing_teeth = df_missing_teeth.reset_index(drop=True)
 
 plt.figure(figsize=(12, 6))
-sns.histplot(df_missing_teeth, x="missing_teeth", hue="jaw_type", binwidth=1, discrete=True)
+sns.histplot(df_missing_teeth, x="missing_teeth", hue="jaw", binwidth=1, discrete=True)
 plt.xticks(range(11, 49), rotation=45)
 plt.show()
 
-df.groupby("jaw_type")["missing_teeth"].describe()
+df.groupby("jaw")["missing_teeth"].describe()
 
 # %% [markdown]
 # ## Model / Mesh properties
@@ -233,10 +240,10 @@ df.groupby("jaw_type")["missing_teeth"].describe()
 # %%
 # balace of models with and without model base
 
-sns.countplot(df, x="has_model_base", hue="jaw_type")
+sns.countplot(df, x="has_model_base", hue="jaw")
 plt.show()
 
-df.groupby("jaw_type")["has_model_base"].describe()
+df.groupby("jaw")["has_model_base"].describe()
 
 # check consistency
 has_base_mismatches = df.groupby('id_patient').filter(lambda x: x['has_model_base'].nunique() > 1)
@@ -256,8 +263,8 @@ df["mesh_has_material"].describe()
 # only lower or upper jaw in dataset
 
 # get the set of unique patient IDs for each jaw type
-ids_lower = set(df[df['jaw_type'] == 'lower']['id_patient'])
-ids_upper = set(df[df['jaw_type'] == 'upper']['id_patient'])
+ids_lower = set(df[df['jaw'] == 'lower']['id_patient'])
+ids_upper = set(df[df['jaw'] == 'upper']['id_patient'])
 print(f"ids_lower={len(ids_lower)}, ids_upper={len(ids_upper)}")
 
 # identify the "missing" cases (only upper or lower jaw present in the dataset)

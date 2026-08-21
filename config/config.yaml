@@ -2,6 +2,7 @@
 data_path_projections: "data/Projections"
 dataset_path_2d: "data/Teeth2D"
 dataset_path_3d: "data/Teeth3DS+"
+metadata: "data/metadata.csv"
 train_split: "data/train.txt"
 test_split: "data/test.txt"
 val_split: "data/val.txt"

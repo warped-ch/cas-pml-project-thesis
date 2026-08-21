@@ -22,6 +22,7 @@ from pathlib import Path
 
 import cv2
 import fiftyone as fo
+import pandas as pd
 import torch
 import yaml
 from torch_geometric.datasets import Teeth3DS
@@ -198,32 +199,34 @@ save_splits(config, train_split, test_split, val_split)
 
 # %%
 # update Teeth2D dataset sample tags:
-#  - split tags: train, test, val
+#  - split tags: train, test, valid
 #  - jaw tags: lower, upper
+#  - has_model_base: true, false
 
 dataset_path_2d = root_path / config["dataset_path_2d"]
 
+# TODO: won't work until '20_data_exploration.ipynb' has been run...
+df_meta = pd.read_csv(root_path / config["metadata"])
+
 fo_dataset = fo.load_dataset(name=str(dataset_path_2d.stem))
 
+tags = ["train", "test", "valid", "lower", "upper", "has_model_base_true", "has_model_base_false"]
+
 # clear old split tags
-fo_dataset.untag_samples(["train", "test", "val", "lower", "upper"])
+fo_dataset.untag_samples(tags)
 
 sample_split_prefixes = {
     "train": set(train_split),
     "test": set(test_split),
-    "val": set(val_split),
+    "valid": set(val_split),
 }
 
-split_sample_ids = {
-    "train": [],
-    "test": [],
-    "val": [],
+sample_has_model_base_prefixes = {
+    "true": {Path(p).stem for p in df_meta.loc[df_meta["has_model_base"] == True, "obj_file"]},
+    "false": {Path(p).stem for p in df_meta.loc[df_meta["has_model_base"] == False, "obj_file"]},
 }
 
-jaw_sample_ids = {
-    "lower": [],
-    "upper": [],
-}
+samle_tag_ids = {tag: [] for tag in tags}
 
 ids, filepaths = fo_dataset.values(["id", "filepath"])
 for id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering for sample tags"):
@@ -231,44 +234,44 @@ for id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering fo
 
     # filter samples for dataset splits
     if any(filename.startswith(p) for p in sample_split_prefixes["train"]):
-        split_sample_ids["train"].append(id)
+        samle_tag_ids["train"].append(id)
     elif any(filename.startswith(p) for p in sample_split_prefixes["test"]):
-        split_sample_ids["test"].append(id)
-    elif any(filename.startswith(p) for p in sample_split_prefixes["val"]):
-        split_sample_ids["val"].append(id)
+        samle_tag_ids["test"].append(id)
+    elif any(filename.startswith(p) for p in sample_split_prefixes["valid"]):
+        samle_tag_ids["valid"].append(id)
     else:
         print(f"⚠️ unknown dataset split for sample: {filename}")
 
     # filter samples for jaw
-    if "lower" in filename.lower():
-        jaw_sample_ids["lower"].append(id)
-    elif "upper" in filename.lower():
-        jaw_sample_ids["upper"].append(id)
+    if "lower" in filename:
+        samle_tag_ids["lower"].append(id)
+    elif "upper" in filename:
+        samle_tag_ids["upper"].append(id)
     else:
         print(f"⚠️ unknown jaw for sample: {filename}")
 
-for split, ids in split_sample_ids.items():
-    view = fo_dataset.select(ids)
-    print(f"view_{split}: {len(view)} samples")
-    view.tag_samples(split)
+    # filter samples for model base
+    if any(filename.startswith(p) for p in sample_has_model_base_prefixes["true"]):
+        samle_tag_ids["has_model_base_true"].append(id)
+    elif any(filename.startswith(p) for p in sample_has_model_base_prefixes["false"]):
+        samle_tag_ids["has_model_base_false"].append(id)
+    else:
+        print(f"⚠️ 'has_model_base' does not exist for sample: {filename}")
 
-for jaw, ids in jaw_sample_ids.items():
+for tag, ids in samle_tag_ids.items():
     view = fo_dataset.select(ids)
-    print(f"view_{jaw}: {len(view)} samples")
-    view.tag_samples(jaw)
+    print(f"view_{tag}: {len(view)} samples")
+    view.tag_samples(tag)
+
+# %%
+session = fo.launch_app(fo_dataset, auto=False)
+session.open_tab()
 
 
 # %% [markdown]
 # ### Export Teeth2D dataset
 
 # %%
-# export Teeth2D COCO dataset train/test/val splits
-
-# consider RF-DETR dataset format requirements:
-# https://rfdetr.roboflow.com/latest/learn/train/dataset-formats/#dataset-formats
-
-shutil.rmtree(dataset_path_2d, ignore_errors=True)
-
 def export_split(view, path):
     print(f"exporting dataset split: {path}")
     view.export(
@@ -284,10 +287,32 @@ def export_split(view, path):
         # TODO: should use: tolerance=0, # Keeps every pixel boundary point
     )
 
-for split in ["train", "test", "val"]:
+
+# %%
+# export Teeth2D COCO dataset train/test/val splits
+
+# consider RF-DETR dataset format requirements:
+# https://rfdetr.roboflow.com/latest/learn/train/dataset-formats/#dataset-formats
+
+shutil.rmtree(dataset_path_2d, ignore_errors=True)
+
+for split in ["train", "test", "valid"]:
     view = fo_dataset.match_tags(split)
     export_split(view, dataset_path_2d / split)
 
 # %%
-session = fo.launch_app(fo_dataset, auto=False)
-session.open_tab()
+# export Teeth2D sub-datasets for specialized model training
+
+for jaw in ["lower", "upper"]:
+    dataset_out_path = Path(f"{dataset_path_2d}_{jaw}")
+    shutil.rmtree(dataset_out_path, ignore_errors=True)
+    for split in ["train", "test", "valid"]:
+        view = fo_dataset.match_tags([split, jaw], bool=True, all=True)
+        export_split(view, dataset_out_path / split)
+
+    for has_model_base in ["has_model_base_true", "has_model_base_false"]:
+        dataset_out_path = Path(f"{dataset_path_2d}_{jaw}_{has_model_base}")
+        shutil.rmtree(dataset_out_path, ignore_errors=True)
+        for split in ["train", "test", "valid"]:
+            view = fo_dataset.match_tags([split, jaw, has_model_base], bool=True, all=True)
+            export_split(view, dataset_out_path / split)
