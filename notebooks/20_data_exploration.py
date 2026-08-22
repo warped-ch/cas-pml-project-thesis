@@ -71,7 +71,7 @@ def load_sample(obj_file: list[str], official_train_split: list[str], official_t
         vertex_labels = np.array(json_data["labels"]) if "labels" in json_data else None
 
         return {
-            "obj_file": str(obj_file),
+            "id_sample": str(obj_file.stem),
             "id_patient": json_data.get("id_patient", None),
             "jaw": "lower" if "lower" in obj_file.name else "upper",
             "official_split": "train" if obj_file.stem in official_train_split else ("test" if obj_file.stem in official_test_split else None),
@@ -116,17 +116,10 @@ df = pd.DataFrame(data)
 
 # automatic type converion (automatically converts None/NaN into pd.NA for integer columns)
 df = df.convert_dtypes()
-df.to_csv(str(dataset_path.parent / "eda.csv"), index=False)
+df.to_csv(str(root_path / config.get("dataframe_eda")), index=False)
 
 df.info()
 df.head()
-
-# %%
-# save required metadata
-
-meta_file = root_path / config.get("metadata")
-df_meta = df[["obj_file", "id_patient", "jaw", "has_model_base"]]
-df_meta.to_csv(str(meta_file), index=False)
 
 # %% [markdown]
 # ## Vertex label distribution
