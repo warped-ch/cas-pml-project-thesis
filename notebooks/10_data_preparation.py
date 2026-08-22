@@ -22,6 +22,7 @@ from pathlib import Path
 
 import cv2
 import fiftyone as fo
+import fiftyone.utils.random as four
 import pandas as pd
 import torch
 import yaml
@@ -29,7 +30,7 @@ from torch_geometric.datasets import Teeth3DS
 from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
-from src import file_io, teeth3ds_utils, view_projector
+from src import file_io, view_projector
 from src.teeth2d_dataset_importer import Teeth2DDatasetImporter
 
 root_path = Path.cwd().parent
@@ -145,36 +146,11 @@ fo_dataset.save()
 session = fo.launch_app(fo_dataset, auto=False)
 session.open_tab()
 
-
 # %% [markdown]
-# ### Train/Test split
+# ### Metadata tags
 
 # %%
-def save_splits(config, train_split: list[str], test_split: list[str], val_split: list[str]):
-    with open(root_path / config["train_split"], 'w', encoding='utf-8') as f:
-        f.write('\n'.join(train_split))
-    with open(root_path / config["test_split"], 'w', encoding='utf-8') as f:
-        f.write('\n'.join(test_split))
-    with open(root_path / config["val_split"], 'w', encoding='utf-8') as f:
-        f.write('\n'.join(val_split))
-
-# use the official train/test splits for now
-
-official_train_split, official_test_split = teeth3ds_utils.load_official_splits(config, root_path)
-print(f"official_train_split: {len(official_train_split)} samples")
-print(f"official_test_split: {len(official_test_split)} samples")
-
-# train on full public train split (skip val for now), use test for evaluation
-train_split = official_train_split
-test_split = official_test_split
-val_split = []
-print(f"train_split: {len(train_split)}, test_split: {len(test_split)}, val_split: {len(val_split)}")
-
-save_splits(config, train_split, test_split, val_split)
-
-# %%
-# update Teeth2D dataset sample tags:
-#  - split tags: train, test, valid
+# update Teeth2D sample metadata tags:
 #  - jaw tags: lower, upper
 #  - has_model_base: true, false
 
@@ -185,16 +161,10 @@ df_meta = pd.read_csv(root_path / config["metadata"])
 
 fo_dataset = fo.load_dataset(name=str(dataset_path_2d.stem))
 
-tags = ["train", "test", "valid", "lower", "upper", "has_model_base_true", "has_model_base_false"]
+tags = ["lower", "upper", "has_model_base_true", "has_model_base_false"]
 
 # clear old split tags
 fo_dataset.untag_samples(tags)
-
-sample_split_prefixes = {
-    "train": set(train_split),
-    "test": set(test_split),
-    "valid": set(val_split),
-}
 
 sample_has_model_base_prefixes = {
     "true": {Path(p).stem for p in df_meta.loc[df_meta["has_model_base"] == True, "obj_file"]},
@@ -206,16 +176,6 @@ samle_tag_ids = {tag: [] for tag in tags}
 ids, filepaths = fo_dataset.values(["id", "filepath"])
 for id, filepath in tqdm(zip(ids, filepaths), total=len(ids), desc="Filtering for sample tags"):
     filename = Path(filepath).name
-
-    # filter samples for dataset splits
-    if any(filename.startswith(p) for p in sample_split_prefixes["train"]):
-        samle_tag_ids["train"].append(id)
-    elif any(filename.startswith(p) for p in sample_split_prefixes["test"]):
-        samle_tag_ids["test"].append(id)
-    elif any(filename.startswith(p) for p in sample_split_prefixes["valid"]):
-        samle_tag_ids["valid"].append(id)
-    else:
-        print(f"⚠️ unknown dataset split for sample: {filename}")
 
     # filter samples for jaw
     if "lower" in filename:
@@ -238,9 +198,22 @@ for tag, ids in samle_tag_ids.items():
     print(f"view_{tag}: {len(view)} samples")
     view.tag_samples(tag)
 
-# %%
 session = fo.launch_app(fo_dataset, auto=False)
 session.open_tab()
+
+# %% [markdown]
+# ### Train/Val/Test split
+
+# %%
+# create sub-datasets splits for specialized model training
+
+for jaw in ["lower", "upper"]:
+    for has_model_base in ["has_model_base_false", "has_model_base_true"]:
+        view = fo_dataset.match_tags([jaw, has_model_base], all=True)
+        print(f"view: {len(view)}")
+
+        # TODO: should keep all the view for patient_id together?
+        four.random_split(view, {"train": 0.7, "valid": 0.15, "test": 0.15}, seed=42)
 
 
 # %% [markdown]
