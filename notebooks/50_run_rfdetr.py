@@ -13,6 +13,7 @@
 # ---
 
 # %%
+import random
 import sys
 from pathlib import Path
 
@@ -24,7 +25,7 @@ import torch
 import yaml
 
 sys.path.append(str(Path.cwd().parent))
-from src import file_io, inference_pipeline
+from src import inference_pipeline
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")
@@ -41,22 +42,28 @@ with open("../config/config.yaml", "r") as f:
 dataset_path_3d = root_path / config.get("dataset_path_3d")
 print(f"dataset_path_3d={dataset_path_3d}")
 
-test_split_file = root_path / config["test_split"]
-print(f"test_split_file={test_split_file}")
-
-best_model_chkpt_path = root_path / config["best_model_chkpt_path"]
+best_model_chkpt_path = (
+    root_path
+    / config.get("output_rf_detr_train")
+    / "20260822_201212/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
+)
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
 ip = inference_pipeline.InferencePipeline(
-  chkpt_file=str(best_model_chkpt_path),
-  config=config,
-  device=device
+    chkpt_file=str(best_model_chkpt_path), config=config, device=device
 )
 print(f"model.class_names: {ip.model.class_names}")
 print(f"model.model_config.resolution: {ip.model.model_config.resolution}")
 
 # %%
-test_sample = file_io.read_random_line_from_file(str(test_split_file))
+test_split_path = root_path / "data" / "Teeth2D_lower_has_model_base_false" / "test"
+
+png_files = list(test_split_path.rglob("*.png"))
+test_split_sample_ids = prefixes = {"_".join(f.stem.split("_")[:2]) for f in png_files}
+print(f"test_split_sample_ids: {len(test_split_sample_ids)}")
+
+# %%
+test_sample = random.choice(list(test_split_sample_ids))
 print(f"test_sample={test_sample}")
 
 obj_file = str(next(dataset_path_3d.rglob(f"{test_sample}.obj")))
@@ -77,14 +84,13 @@ for i, mask in enumerate(ip.masks):
 # TODO: teeth labels are being mixed up sometimes (e.g. HZH8DYC7_lower)
 annotated_images = []
 mask_annotator = sv.MaskAnnotator(
-    #color=sv.ColorPalette.from_matplotlib("viridis", len(np.unique(vertex_labels))),
+    # color=sv.ColorPalette.from_matplotlib("viridis", len(np.unique(vertex_labels))),
     # TODO: custom colormap for good coloring? (viridis is good for lower, but bad for upper)
     color=sv.ColorPalette.from_matplotlib("viridis", len(ip.model.class_names)),
 )
 for det in ip.detections:
     annotated_img = mask_annotator.annotate(
-        scene=det.metadata["source_image"], 
-        detections=det
+        scene=det.metadata["source_image"], detections=det
     )
     annotated_images.append(annotated_img)
 
@@ -93,5 +99,5 @@ views = np.array(config["2d_projection"]["views"])
 nb_utils.plot_mesh(mesh, vertex_labels)
 nb_utils.plot_image_grid(
     images=annotated_images,
-    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
+    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
 )

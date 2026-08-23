@@ -32,19 +32,27 @@ print(f"Using device: {device}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-dataset_path_2d = root_path / config.get("dataset_path_2d")
-print(f"dataset_path_2d={dataset_path_2d}")
-
 # %% [markdown]
 # ## Evaluate on Teeth2D dataset
 
 # %%
-best_model_chkpt_path = root_path / "output/rf_detr_train" / "20260814_201756/checkpoint_best_total.pth"
+best_model_chkpt_path = (
+    root_path
+    / config.get("output_rf_detr_train")
+    / "20260822_201212/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
+)
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
+
+dataset_path_2d = root_path / "data" / "Teeth2D_lower_has_model_base_false"
+print(f"dataset_path_2d={dataset_path_2d}")
 
 split = "test"
 
-metrics_file = root_path / config["output_rf_detr_test"] / f"{best_model_chkpt_path.parent.stem}_{split}.json"
+metrics_file = (
+    root_path
+    / config["output_rf_detr_test"]
+    / f"{best_model_chkpt_path.parent.parent.stem}_{best_model_chkpt_path.parent.stem}_{split}.json"
+)
 metrics_file.parent.mkdir(parents=True, exist_ok=True)
 print(f"metrics_file={metrics_file}")
 
