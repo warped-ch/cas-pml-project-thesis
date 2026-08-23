@@ -32,29 +32,43 @@ print(f"root_path={root_path}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-dataset_path_2d = root_path / config.get("dataset_path_2d")
-print(f"dataset_path_2d={dataset_path_2d}")
-
 # %%
+datasets = [
+    "Teeth2D_lower_has_model_base_false",
+    "Teeth2D_lower_has_model_base_true",
+    "Teeth2D_upper_has_model_base_false",
+    "Teeth2D_upper_has_model_base_true",
+]
+dataset_paths = [(root_path / "data" / ds) for ds in datasets]
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# TODO: link this to "image_size" in config
-model = RFDETRSegMedium()
+for dataset_path in dataset_paths:
+    # TODO: link this to "image_size" in config
+    model = RFDETRSegMedium()
 
-output_dir = root_path / config["output_rf_detr_train"] / timestamp
+    output_dir = (
+        root_path / config["output_rf_detr_train"] / timestamp / dataset_path.stem
+    )
+    print(f"output_dir={output_dir}")
 
-# Recommended configurations for different GPUs:
-# https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size
-model.train(
-    dataset_dir=str(dataset_path_2d),
-    epochs=100,
-    batch_size=8,
-    grad_accum_steps=2,
-    lr=1e-4,
-    aug_config=AUG_CONSERVATIVE,
-    multi_scale=False,
-    # TODO: disable for final training run
-    use_ema=False,
-    pin_memory=True,
-    output_dir=output_dir,
-)
+    # Recommended configurations for different GPUs:
+    # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size
+    model.train(
+        dataset_dir=str(dataset_path),
+        output_dir=output_dir,
+        epochs=200,
+        batch_size=8,
+        grad_accum_steps=2,
+        lr=5e-5,
+        aug_config=AUG_CONSERVATIVE,
+        multi_scale=False,
+        eval_interval=5,
+        early_stopping=True,
+        early_stopping_patience=10,  # Wait 10 epochs before stopping
+        early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+        # TODO: disable for final training run
+        use_ema=False,
+        pin_memory=True,
+        progress_bar="tqdm",
+    )
