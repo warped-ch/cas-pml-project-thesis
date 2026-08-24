@@ -45,7 +45,7 @@ print(f"dataset_path_3d={dataset_path_3d}")
 best_model_chkpt_path = (
     root_path
     / config.get("output_rf_detr_train")
-    / "20260822_201212/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
+    / "20260823_145349/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
 )
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 

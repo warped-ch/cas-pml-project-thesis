@@ -9,6 +9,35 @@
 
 ```
 
+## rf-detr/20260823_145349
+
+[20260823_145349](../output/rf_detr_train/20260823_145349)
+
+Only trained 2 models on a subset of the data for testing (Teeth2D_lower_has_model_base_false, Teeth2D_upper_has_model_base_false).
+
+- optimize view projection parameters
+  - rotate front center and back center views so that teeth labels have same orientation across all views
+  - increase tilt on side views to see more teeth
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=5e-5,
+aug_config=AUG_CONSERVATIVE,
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+# TODO: disable for final training run
+use_ema=False,
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260822_201212
 
 [20260822_201212](../output/rf_detr_train/20260822_201212)
