@@ -1,5 +1,22 @@
 ## Issues and Workarounds
 
+### Technical Issues
+
+#### Backface Culling
+
+see sample images: [backface_culling](/doc/backface_cullling/)
+
+Status with current git commit: 578b3e60
+
+| backface_culling | view image | mask image | color mask image |
+|:---:|---|:---:|---|
+| false | inside of the mesh is just flat grey (no features) | ok | ok |
+| true | inside of mesh not visible (parts of the object just missing) | no label on the inside of the mesh (parts of the object just missing/white) | no label on the inside of the mesh (parts of the object just missing/white) |
+
+examples:
+
+- SL5I9AXM_lower.obj
+
 ### Fiftyone
 
 #### All the labels have the same color
