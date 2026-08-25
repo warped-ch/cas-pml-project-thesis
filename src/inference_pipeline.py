@@ -47,7 +47,12 @@ class InferencePipeline:
 
         mesh = file_io.load_mesh_origin_aligned(obj_file, device=self.device)
 
-        images = self.view_projector.render_2d_images_tensor(mesh)
+        images = self.view_projector.render_2d_images(mesh)
+
+        # TODO: whack hack
+        # try to get same result as when loading image from file...
+        from PIL import Image
+        images = [Image.fromarray(img, mode="L") for img in images]
 
         # tensor from render_2d_images_tensor is in (Batch, H, W, 3) format
         if isinstance(images, torch.Tensor) and images.dim() == 4:
@@ -61,7 +66,7 @@ class InferencePipeline:
             )
 
         self.detections = self.model.predict(
-            images=list(images),
+            images=images,
             threshold=0.5,
         )
 

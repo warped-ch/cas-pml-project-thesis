@@ -45,7 +45,7 @@ print(f"dataset_path_3d={dataset_path_3d}")
 best_model_chkpt_path = (
     root_path
     / config.get("output_rf_detr_train")
-    / "20260823_145349/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
+    / "20260824_215809/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
 )
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
@@ -86,13 +86,23 @@ annotated_images = []
 mask_annotator = sv.MaskAnnotator(
     # color=sv.ColorPalette.from_matplotlib("viridis", len(np.unique(vertex_labels))),
     # TODO: custom colormap for good coloring? (viridis is good for lower, but bad for upper)
-    color=sv.ColorPalette.from_matplotlib("viridis", len(ip.model.class_names)),
+    # color=sv.ColorPalette.from_matplotlib("viridis", len(ip.model.class_names)),
 )
 for det in ip.detections:
     annotated_img = mask_annotator.annotate(
         scene=det.metadata["source_image"], detections=det
     )
     annotated_images.append(annotated_img)
+
+label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER, text_padding=0)
+for i, det in enumerate(ip.detections):
+    labels = [
+        ip.model.class_names[class_id].replace("class_", "")
+        for class_id in det.class_id
+    ]
+    annotated_images[i] = sv.LabelAnnotator(
+        text_position=sv.Position.CENTER, text_padding=0
+    ).annotate(annotated_images[i], det, labels)
 
 views = np.array(config["2d_projection"]["views"])
 
@@ -101,3 +111,34 @@ nb_utils.plot_image_grid(
     images=annotated_images,
     titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
 )
+
+# %%
+from rfdetr import RFDETRSegMedium
+
+model = RFDETRSegMedium(pretrain_weights=str(best_model_chkpt_path), device=device)
+
+image = Path(
+    r"C:\Development\cas_pml\project_thesis\data\Teeth2D_lower_has_model_base_false\test\ZM8PCSK6_lower_elev-60_azim0.png"
+)
+detections = model.predict(str(image), threshold=0.5)
+
+annotated_image = mask_annotator.annotate(
+    detections.metadata["source_image"], detections
+)
+cv2.imwrite(
+    temp_out_path / f"mask_annotator1.png",
+    cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR),
+)
+
+labels = [
+    model.class_names[class_id].replace("class_", "")
+    for class_id in detections.class_id
+]
+annotated_image = sv.LabelAnnotator(
+    text_position=sv.Position.CENTER, text_padding=0
+).annotate(annotated_image, detections, labels)
+cv2.imwrite(
+    temp_out_path / f"mask_annotator2.png",
+    cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR),
+)
+
