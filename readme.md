@@ -100,8 +100,15 @@ jupytext --sync .\notebooks\*.ipynb
 
 ### Upgrade dependencies
 
-```
+```ps
 uv sync --upgrade
+```
+
+#### Upgrade a specific package only
+
+```ps
+uv sync --upgrade-package "rfdetr[augment,loggers,train]" --dry-run
+uv sync --upgrade-package "rfdetr[augment,loggers,train]"
 ```
 
 ### Launch fiftyone from cmd line
