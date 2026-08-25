@@ -58,7 +58,7 @@ class ViewProjector:
             image_size=self.config["2d_projection"]["image_size"],
             blur_radius=0.0,
             faces_per_pixel=1,
-            cull_backfaces=False,
+            cull_backfaces=True,
         )
 
         self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
