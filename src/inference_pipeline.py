@@ -65,6 +65,7 @@ class InferencePipeline:
             threshold=0.5,
         )
 
+        # TODO: potential bug (removes gingiva, only teeth labels survive, rest is 0)
         # TODO: avoid CPU roundtrip?
         self.masks = []
         for det in self.detections:
