@@ -21,7 +21,6 @@ from pathlib import Path
 
 import yaml
 from rfdetr import RFDETRSegMedium
-from rfdetr.datasets.aug_configs import AUG_CONSERVATIVE
 
 root_path = Path.cwd().parent
 print(f"root_path={root_path}")

@@ -1,6 +1,5 @@
 # Notes on Experiments
 
-
 ## rf-detr/
 
 [](../output/rf_detr_train/)
@@ -9,10 +8,36 @@
 
 ```
 
+## rf-detr/20260826_200249
+
+[20260826_200249](../output/rf_detr_train/20260826_200249)
+
+- incomplete training run for testing, train on Teeth2D_lower only
+- keep context awareness for view projection (see comments on `views` in [config.yaml](../config/config.yaml))
+- disable flip for augmentation (see [Notes on augmentation](../notebooks/40_train_rfdetr.ipynb) in training notebook)
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=1e-4,
+aug_config={},  # disable horizontal flip while keeping required resizing and normalization
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260825_211334
 
 [20260825_211334](../output/rf_detr_train/20260825_211334)
 
+- incomplete training run for testing, train on Teeth2D_lower only
 - upgrade rf-detr dependency to "rfdetr[augment,loggers,train]>=1.9.1"
   - significantly reduced CPU load (~10% vs ~40%)
 - temp hack to get the same result from inference pipeline as when loading image from file
