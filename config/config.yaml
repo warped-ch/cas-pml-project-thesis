@@ -31,15 +31,17 @@ class_id_map:
   background_value: 0
   distance: 80
   fov: 60
-  views: # each view is [elevation, azimuth]
+  # views for projection rendering, each view is [elevation, azimuth]
+  # - tooth id (FDI) is defined by it's quadrant (1 to 4) and and position from the midline (1 to 8), appearance less relevant/distinguishable
+  # - make sure the view allows keeping track of spatial context (where tooth is located relative to jaw)
+  # - make sure the view includes contextual anchors (e.g. curvature of the jaw line)
+  views: 
     - [0, 0]    # top down
-    - [-90, 180]  # front center
-    - [90, 180]   # back center
     - [-60, 0]  # top down front diagonal center
-    - [60, 0]   # top down back diagonal center
-    - [0, -45]  # top down front diagonal left
-    - [0, 45]   # top down front diagonal right
+    - [0, -45]  # left side flat
+    - [0, -75]  # left side steep
+    - [0, 45]   # right side flat
+    - [0, 75]   # right side steep
+    - [60, 0]   # bottom up back diagonal center
     - [60, -45] # bottom up back diagonal left
     - [60, 45]  # bottom up back diagonal right
-    - [0, -75]  # left side
-    - [0, 75]   # right side
