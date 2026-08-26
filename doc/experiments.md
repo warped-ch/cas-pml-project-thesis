@@ -9,6 +9,56 @@
 
 ```
 
+## rf-detr/20260825_211334
+
+[20260825_211334](../output/rf_detr_train/20260825_211334)
+
+- upgrade rf-detr dependency to "rfdetr[augment,loggers,train]>=1.9.1"
+  - significantly reduced CPU load (~10% vs ~40%)
+- temp hack to get the same result from inference pipeline as when loading image from file
+- bring back majority voting for 3D back projection
+- fix "flat gray" mesh texture problem by enabling backface culling
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=5e-5,
+aug_config=AUG_CONSERVATIVE,
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
+## rf-detr/20260825_202730
+
+[20260825_202730](../output/rf_detr_train/20260825_202730)
+
+- incomplete training run on Teeth2D_lower only, just to see how we're doing...
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=5e-5,
+aug_config=AUG_CONSERVATIVE,
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260823_145349
 
 [20260823_145349](../output/rf_detr_train/20260823_145349)

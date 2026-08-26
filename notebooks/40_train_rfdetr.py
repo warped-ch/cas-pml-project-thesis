@@ -34,10 +34,11 @@ with open("../config/config.yaml", "r") as f:
 
 # %%
 datasets = [
-    "Teeth2D_lower_has_model_base_false",
-    "Teeth2D_lower_has_model_base_true",
-    "Teeth2D_upper_has_model_base_false",
-    "Teeth2D_upper_has_model_base_true",
+    "Teeth2D_lower",
+    # "Teeth2D_lower_has_model_base_false",
+    # "Teeth2D_lower_has_model_base_true",
+    # "Teeth2D_upper_has_model_base_false",
+    # "Teeth2D_upper_has_model_base_true",
 ]
 dataset_paths = [(root_path / "data" / ds) for ds in datasets]
 
@@ -67,8 +68,6 @@ for dataset_path in dataset_paths:
         early_stopping=True,
         early_stopping_patience=10,  # Wait 10 epochs before stopping
         early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
-        # TODO: disable for final training run
-        use_ema=False,
         pin_memory=True,
         progress_bar="tqdm",
     )

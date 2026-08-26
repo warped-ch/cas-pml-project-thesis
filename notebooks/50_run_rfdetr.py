@@ -45,7 +45,7 @@ print(f"dataset_path_3d={dataset_path_3d}")
 best_model_chkpt_path = (
     root_path
     / config.get("output_rf_detr_train")
-    / "20260824_215809/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
+    / "20260825_211334/Teeth2D_lower/checkpoint_best_ema.pth"
 )
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
@@ -56,7 +56,7 @@ print(f"model.class_names: {ip.model.class_names}")
 print(f"model.model_config.resolution: {ip.model.model_config.resolution}")
 
 # %%
-test_split_path = root_path / "data" / "Teeth2D_lower_has_model_base_false" / "test"
+test_split_path = root_path / "data" / "Teeth2D_lower" / "test"
 
 png_files = list(test_split_path.rglob("*.png"))
 test_split_sample_ids = prefixes = {"_".join(f.stem.split("_")[:2]) for f in png_files}
