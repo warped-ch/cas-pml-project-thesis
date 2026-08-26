@@ -55,6 +55,14 @@ for dataset_path in dataset_paths:
 
     # Recommended configurations for different GPUs:
     # https://rfdetr.roboflow.com/latest/learn/train/training-parameters/#understanding-batch-size
+
+    # Notes on augmentation
+    # https://rfdetr.roboflow.com/latest/learn/train/augmentations/#augmentations
+    # - jaw context (models spatial anchor) is important (tooth 16 looks structurally identical to tooth 26), cannot rely on visual features alone
+    # - geometric augmentation that preserves structure (mild rotation, scaling and elastic transforms)
+    # - avoid flipping (e.g. horizontal flipping changes tooth 11 to tooth 21)
+    # - avoid extreme crops (loosing jaw line curvature context)
+
     model.train(
         dataset_dir=str(dataset_path),
         output_dir=output_dir,
@@ -62,7 +70,7 @@ for dataset_path in dataset_paths:
         batch_size=8,
         grad_accum_steps=2,
         lr=5e-5,
-        aug_config=AUG_CONSERVATIVE,
+        aug_config={},  # disable horizontal flip while keeping required resizing and normalization
         multi_scale=False,
         eval_interval=5,
         early_stopping=True,
