@@ -69,7 +69,7 @@ for dataset_path in dataset_paths:
         epochs=200,
         batch_size=8,
         grad_accum_steps=2,
-        lr=5e-5,
+        lr=1e-4,
         aug_config={},  # disable horizontal flip while keeping required resizing and normalization
         multi_scale=False,
         eval_interval=5,
