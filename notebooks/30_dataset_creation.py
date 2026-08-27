@@ -303,11 +303,11 @@ for jaw in ["lower", "upper"]:
         view = fo_dataset.match_tags([split, jaw], bool=True, all=True)
         export_split(view, dataset_out_path / split)
 
-    for has_model_base in ["has_model_base_true", "has_model_base_false"]:
-        dataset_out_path = Path(f"{dataset_path_2d}_{jaw}_{has_model_base}")
-        shutil.rmtree(dataset_out_path, ignore_errors=True)
-        for split in ["train", "test", "valid"]:
-            view = fo_dataset.match_tags(
-                [split, jaw, has_model_base], bool=True, all=True
-            )
-            export_split(view, dataset_out_path / split)
+    # for has_model_base in ["has_model_base_true", "has_model_base_false"]:
+    #     dataset_out_path = Path(f"{dataset_path_2d}_{jaw}_{has_model_base}")
+    #     shutil.rmtree(dataset_out_path, ignore_errors=True)
+    #     for split in ["train", "test", "valid"]:
+    #         view = fo_dataset.match_tags(
+    #             [split, jaw, has_model_base], bool=True, all=True
+    #         )
+    #         export_split(view, dataset_out_path / split)

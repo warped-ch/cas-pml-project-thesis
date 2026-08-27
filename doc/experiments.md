@@ -8,6 +8,32 @@
 
 ```
 
+## rf-detr/20260826_212828
+
+[20260826_212828](../output/rf_detr_train/20260826_212828)
+
+- incomplete training run for testing, train on Teeth2D_lower only
+- reduce learning rate from 1e-4 to 5e-5 again
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=5e-5,
+aug_config={},  # disable horizontal flip while keeping required resizing and normalization
+# TODO: save_dataset_grids=True,
+# TODO: speed up training by specifying "num_queries" according to classes in dataset?
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260826_200249
 
 [20260826_200249](../output/rf_detr_train/20260826_200249)
