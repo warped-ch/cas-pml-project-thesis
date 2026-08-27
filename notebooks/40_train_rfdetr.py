@@ -34,10 +34,8 @@ with open("../config/config.yaml", "r") as f:
 # %%
 datasets = [
     "Teeth2D_lower",
-    # "Teeth2D_lower_has_model_base_false",
-    # "Teeth2D_lower_has_model_base_true",
-    # "Teeth2D_upper_has_model_base_false",
-    # "Teeth2D_upper_has_model_base_true",
+    "Teeth2D_lower",
+    "Teeth2D",
 ]
 dataset_paths = [(root_path / "data" / ds) for ds in datasets]
 
