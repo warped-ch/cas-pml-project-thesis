@@ -70,7 +70,7 @@ for dataset_path in dataset_paths:
         grad_accum_steps=2,
         lr=5e-5,
         aug_config={},  # disable horizontal flip while keeping required resizing and normalization
-        # TODO: save_dataset_grids=True,
+        save_dataset_grids=True,
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
         eval_interval=5,
