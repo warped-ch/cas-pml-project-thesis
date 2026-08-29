@@ -76,7 +76,6 @@ for dataset_path in dataset_paths:
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
         eval_interval=5,
-        validate_eval_batch_size=64,
         early_stopping=True,
         early_stopping_patience=10,  # Wait 10 epochs before stopping
         early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
