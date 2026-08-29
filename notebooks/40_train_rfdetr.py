@@ -67,7 +67,11 @@ for dataset_path in dataset_paths:
         batch_size=8,
         grad_accum_steps=2,
         lr=1e-4,
-        aug_config={},  # disable horizontal flip while keeping required resizing and normalization
+        aug_config={
+            "transforms": [
+                {"type": "Rotate", "limit": 10, "p": 0.3, "border_mode": 0}
+            ]
+        },
         save_dataset_grids=True,
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
