@@ -39,11 +39,11 @@ with open("../config/config.yaml", "r") as f:
 best_model_chkpt_path = (
     root_path
     / config.get("output_rf_detr_train")
-    / "20260822_201212/Teeth2D_lower_has_model_base_false/checkpoint_best_total.pth"
+    / "20260828_064008/Teeth2D/checkpoint_best_ema.pth"
 )
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
-dataset_path_2d = root_path / "data" / "Teeth2D_lower_has_model_base_false"
+dataset_path_2d = root_path / "data" / "Teeth2D"
 print(f"dataset_path_2d={dataset_path_2d}")
 
 split = "test"
