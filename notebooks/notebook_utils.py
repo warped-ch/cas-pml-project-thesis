@@ -6,7 +6,6 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
-import torch
 from matplotlib.colors import Colormap
 from pytorch3d.structures import Meshes
 
@@ -98,15 +97,10 @@ def plot_mesh(mesh: Meshes, vertex_labels: np.ndarray = None):
     verts = mesh.verts_packed().detach().cpu().numpy()
     faces = mesh.faces_packed().detach().cpu().numpy()
 
-    # Format faces for PyVista
-    # PyVista requires a flat array where each polygon is prefixed by its number of padding vertices: [num_verts, v1, v2, v3, ...]
+    # Format faces for PyVista [3, v1, v2, v3, ...]
     num_faces = faces.shape[0]
-    padding = torch.full(
-        (num_faces, 1), 3
-    ).numpy()  # Column of 3s since they are triangles
-    faces_pv = (
-        torch.hstack([torch.tensor(padding), torch.tensor(faces)]).ravel().numpy()
-    )
+    padding = np.full((num_faces, 1), 3)
+    faces_pv = np.hstack([padding, faces]).ravel()
 
     # Create the PyVista PolyData object
     pv_mesh = pv.PolyData(verts, faces_pv)
