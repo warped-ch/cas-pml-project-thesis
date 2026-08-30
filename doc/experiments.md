@@ -27,7 +27,6 @@ aug_config={
     ]
 },
 save_dataset_grids=True,
-# TODO: speed up training by specifying "num_queries" according to classes in dataset?
 multi_scale=False,
 eval_interval=5,
 early_stopping=True,
@@ -57,7 +56,6 @@ grad_accum_steps=2,
 lr=1e-4,
 aug_config={},  # disable horizontal flip while keeping required resizing and normalization
 save_dataset_grids=True,
-# TODO: speed up training by specifying "num_queries" according to classes in dataset?
 multi_scale=False,
 eval_interval=5,
 early_stopping=True,
@@ -82,8 +80,6 @@ batch_size=8,
 grad_accum_steps=2,
 lr=5e-5,
 aug_config={},  # disable horizontal flip while keeping required resizing and normalization
-# TODO: save_dataset_grids=True,
-# TODO: speed up training by specifying "num_queries" according to classes in dataset?
 multi_scale=False,
 eval_interval=5,
 early_stopping=True,
@@ -194,7 +190,6 @@ eval_interval=5,
 early_stopping=True,
 early_stopping_patience=10,  # Wait 10 epochs before stopping
 early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
-# TODO: disable for final training run
 use_ema=False,
 pin_memory=True,
 progress_bar="tqdm",
@@ -219,7 +214,6 @@ eval_interval=5,
 early_stopping=True,
 early_stopping_patience=10,  # Wait 10 epochs before stopping
 early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
-# TODO: disable for final training run
 use_ema=False,
 pin_memory=True,
 progress_bar="tqdm",
