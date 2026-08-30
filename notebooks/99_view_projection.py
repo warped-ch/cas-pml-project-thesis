@@ -46,7 +46,6 @@ dataset_path = root_path / config["dataset_path_3d"]
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
-# TODO: use train/test/val splits instead
 obj_files = list(dataset_path.rglob("*.obj"))
 
 obj_file = random.choice(obj_files)

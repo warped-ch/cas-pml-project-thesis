@@ -117,8 +117,6 @@ class ViewProjector:
             torch.Tensor: The rendered images (RGB) batch of shape (B, H, W, 3),
                 where B is the batch size (number of views)
         """
-        # TODO: the inside of the mesh is now visible but still "flat" (no structure visible of the inside of gingiva)
-        # example: C4LOTSKE_upper.obj
 
         # define a default color for each vertex
         num_vertices = mesh.verts_packed().shape[0]

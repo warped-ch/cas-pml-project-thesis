@@ -81,7 +81,6 @@ for i, det in enumerate(ip.detections):
 for i, mask in enumerate(ip.masks):
     cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
 
-# TODO: teeth labels are being mixed up sometimes (e.g. HZH8DYC7_lower)
 annotated_images = []
 mask_annotator = sv.MaskAnnotator(
     # color=sv.ColorPalette.from_matplotlib("viridis", len(np.unique(vertex_labels))),
