@@ -64,6 +64,7 @@ metrics = model.evaluate(
     dataset_dir=str(dataset_path_2d),
     split=split,
     batch_size=64,
+    progress_bar="tqdm",
 )
 with open(metrics_file, "w") as f:
     json.dump(metrics, f)
