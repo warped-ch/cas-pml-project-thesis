@@ -269,6 +269,7 @@ def export_split(view, path):
     print(f"exporting dataset split: {path}")
     view.export(
         dataset_type=fo.types.COCODetectionDataset,
+        classes=view.default_classes, # make sure "categories" contains the superset of classes (avoid rf-detr eval crashes)
         export_dir=str(path),
         labels_path="_annotations.coco.json",
         data_path=str(path),

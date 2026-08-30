@@ -30,14 +30,18 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
 
         self.config = config
 
-        self.mask_targets = {}
+        self.default_mask_targets = {}
         class_id_map = self.config["class_id_map"]
         for cid in self.config["class_ids"]:
             old_id = int(cid)
             new_id = class_id_map.get(old_id, old_id) if class_id_map else old_id
             # keep the old class id encoded in class name, will be used to restore original class id when generating final predicted mask
-            self.mask_targets[new_id] = f"class_{old_id}"
-        print(f"mask_targets={self.mask_targets}")
+            self.default_mask_targets[new_id] = f"class_{old_id}"
+        print(f"mask_targets={self.default_mask_targets}")
+
+        self.default_classes = [
+            self.default_mask_targets[cid] for cid in sorted(self.default_mask_targets.keys())
+        ]
 
         self._dataset_root = Path(dataset_dir)
         self._images_dir = self._dataset_root / "images"
@@ -71,7 +75,7 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         # convert semantic segmentation labels to instance segmentation labels (fo.Detections):
         # - improved label visualization (selective display)
         # - COCO export
-        detections = segmentation.to_detections(mask_targets=self.mask_targets)
+        detections = segmentation.to_detections(mask_targets=self.default_mask_targets)
 
         label_dict = {
             "ground_truth_seg": segmentation,
@@ -89,7 +93,7 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         return True
 
     def get_dataset_info(self):
-        return {"default_mask_targets": self.mask_targets}
+        return {"default_mask_targets": self.default_mask_targets}
 
     @property
     def label_cls(self):
