@@ -8,6 +8,35 @@
 
 ```
 
+## rf-detr/20260829_114546
+
+[20260829_114546](../output/rf_detr_train/20260829_114546)
+
+- add light rotation for augmentation
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=1e-4,
+aug_config={
+    "transforms": [
+        {"type": "Rotate", "limit": 10, "p": 0.3, "border_mode": 0}
+    ]
+},
+save_dataset_grids=True,
+# TODO: speed up training by specifying "num_queries" according to classes in dataset?
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260828_064008
 
 [20260828_064008](../output/rf_detr_train/20260828_064008)

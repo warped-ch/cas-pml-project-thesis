@@ -33,8 +33,8 @@ with open("../config/config.yaml", "r") as f:
 
 # %%
 datasets = [
-    "Teeth2D_lower",
-    "Teeth2D_upper",
+    # "Teeth2D_lower",
+    # "Teeth2D_upper",
     "Teeth2D",
 ]
 dataset_paths = [(root_path / "data" / ds) for ds in datasets]
