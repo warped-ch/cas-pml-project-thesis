@@ -42,11 +42,7 @@ with open("../config/config.yaml", "r") as f:
 dataset_path_3d = root_path / config.get("dataset_path_3d")
 print(f"dataset_path_3d={dataset_path_3d}")
 
-best_model_chkpt_path = (
-    root_path
-    / config.get("output_rf_detr_train")
-    / "20260829_114546/Teeth2D/checkpoint_best_ema.pth"
-)
+best_model_chkpt_path = root_path / config.get("best_model_chkpt_path")
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
 ip = inference_pipeline.InferencePipeline(
