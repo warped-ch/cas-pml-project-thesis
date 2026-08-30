@@ -24,6 +24,7 @@ dependencies = [
   "open3d>=0.19.0",
   "networkx[default]>=3.6.1",
   "joblib>=1.5.3",
+  "glasbey>=0.3.0",
 ]
 
 [dependency-groups]

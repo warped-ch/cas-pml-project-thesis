@@ -1,5 +1,8 @@
 import math
+from typing import Any
 
+import glasbey
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
@@ -8,6 +11,20 @@ from matplotlib.colors import Colormap
 from pytorch3d.structures import Meshes
 
 pv.set_jupyter_backend("trame")
+
+
+def get_color_palette(palette: Any = "tab10", palette_size: int = 17):
+    colors = glasbey.extend_palette(palette, palette_size)
+
+    rgb_arr = mcolors.to_rgba_array(colors)[:, :3]
+    hsv_arr = mcolors.rgb_to_hsv(rgb_arr)
+
+    # find index of lowest saturation
+    greyest_idx = np.argmin(hsv_arr[:, 1])
+    # pop the greyest and move to the front (gingiva, class_0)
+    colors.insert(0, colors.pop(greyest_idx))
+
+    return colors
 
 
 def plot_histogram_grid(

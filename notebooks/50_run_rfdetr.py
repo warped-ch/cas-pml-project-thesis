@@ -20,6 +20,7 @@ from pathlib import Path
 import cv2
 import notebook_utils as nb_utils
 import numpy as np
+import seaborn as sns
 import supervision as sv
 import torch
 import yaml
@@ -59,6 +60,12 @@ test_split_sample_ids = prefixes = {"_".join(f.stem.split("_")[:2]) for f in png
 print(f"test_split_sample_ids: {len(test_split_sample_ids)}")
 
 # %%
+custom_palette = nb_utils.get_color_palette()
+sns.palplot(custom_palette)
+
+sv_custom_palette = sv.ColorPalette.from_hex(custom_palette)
+
+# %%
 test_sample = random.choice(list(test_split_sample_ids))
 print(f"test_sample={test_sample}")
 
@@ -78,26 +85,22 @@ for i, mask in enumerate(ip.masks):
     cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
 
 annotated_images = []
-mask_annotator = sv.MaskAnnotator(
-    # color=sv.ColorPalette.from_matplotlib("viridis", len(np.unique(vertex_labels))),
-    # TODO: custom colormap for good coloring? (viridis is good for lower, but bad for upper)
-    # color=sv.ColorPalette.from_matplotlib("viridis", len(ip.model.class_names)),
-)
+mask_annotator = sv.MaskAnnotator(color=sv_custom_palette)
 for det in ip.detections:
     annotated_img = mask_annotator.annotate(
         scene=det.metadata["source_image"], detections=det
     )
     annotated_images.append(annotated_img)
 
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER, text_padding=0)
+label_annotator = sv.LabelAnnotator(
+    color=sv_custom_palette, text_position=sv.Position.CENTER, text_padding=0
+)
 for i, det in enumerate(ip.detections):
     labels = [
         ip.model.class_names[class_id].replace("class_", "")
         for class_id in det.class_id
     ]
-    annotated_images[i] = sv.LabelAnnotator(
-        text_position=sv.Position.CENTER, text_padding=0
-    ).annotate(annotated_images[i], det, labels)
+    annotated_images[i] = label_annotator.annotate(annotated_images[i], det, labels)
 
 views = np.array(config["2d_projection"]["views"])
 
