@@ -12,22 +12,22 @@ from pytorch3d.structures import Meshes
 pv.set_jupyter_backend("trame")
 
 
-def get_colors(palette: Any = "tab10", palette_size: int = 17) -> list[str]:
+def get_colors(palette: Any = "Set3") -> list[str]:
     """
     Returns a list of color strings (hex, RGB).
-
-    Args:
-        palette_size: matches the number of class IDs per jaw (lower/upper) by default.
     """
-    colors = glasbey.extend_palette(palette, palette_size)
+    base_colors = glasbey.extend_palette(palette=palette, palette_size=17)
 
-    # find the "greyest" color and move it to the front (gingiva, class_0)
-    rgb_arr = mcolors.to_rgba_array(colors)[:, :3]
+    # find the "greyest" color (lowest saturation), to be used for gingiva (class_0)
+    rgb_arr = mcolors.to_rgba_array(base_colors)[:, :3]
     hsv_arr = mcolors.rgb_to_hsv(rgb_arr)
     greyest_idx = np.argmin(hsv_arr[:, 1])  # find index of lowest saturation
-    colors.insert(0, colors.pop(greyest_idx))
 
-    return colors
+    gingiva_color = base_colors.pop(greyest_idx)
+    tooth_colors = base_colors  # the remaining 16 colors
+
+    # return the superset of colors (same tooth colors wor lower/upper jaw)
+    return [gingiva_color] + tooth_colors + tooth_colors
 
 
 def convert_colors_pv(colors: list[str], class_ids: list[int]) -> dict[int, str]:

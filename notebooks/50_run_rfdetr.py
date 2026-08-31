@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 import cv2
+import matplotlib.pyplot as plt
 import notebook_utils as nb_utils
 import numpy as np
 import seaborn as sns
@@ -60,12 +61,14 @@ test_split_sample_ids = prefixes = {"_".join(f.stem.split("_")[:2]) for f in png
 print(f"test_split_sample_ids: {len(test_split_sample_ids)}")
 
 # %%
-# TODO: supervision and pyvista indexing into the colormap might still lead to tooth color same as gingiva:
-# fdi class label 31 -> 0-based class_idx: 17 -> color index: class_idx % len(colors) -> 17%17=0 == gingiva...
-
 colors = nb_utils.get_colors()
 print(f"colors: {len(colors)}, {colors}")
+
+class_ids = config["class_ids"]
 sns.palplot(colors)
+plt.title("FDI class_id color labels", fontsize=16, pad=20)
+plt.xticks(range(len(colors)), class_ids)
+plt.show()
 
 colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
 print(f"colors_pv: {len(colors_pv)}, {colors_pv}")
@@ -98,7 +101,11 @@ for det in ip.detections:
     annotated_images.append(annotated_img)
 
 label_annotator = sv.LabelAnnotator(
-    color=colors_sv, text_position=sv.Position.CENTER, text_padding=0
+    color=colors_sv,
+    text_color=sv.Color.BLACK,
+    text_scale=0.4,
+    text_padding=0,
+    text_position=sv.Position.CENTER,
 )
 for i, det in enumerate(ip.detections):
     labels = [
