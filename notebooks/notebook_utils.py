@@ -107,14 +107,33 @@ def plot_mesh(mesh: Meshes, vertex_labels: np.ndarray = None):
 
     if vertex_labels is not None:
         pv_mesh.point_data["labels"] = vertex_labels
-        pv_mesh.color_labels(colors="viridis", scalars="labels", inplace=True)
+
+        custom_palette = get_color_palette()
+        unique_labels = np.unique(vertex_labels)
+
+        class_labels = sorted([0] + list(range(11, 19)) + list(range(21, 29)) + list(range(31, 39)) + list(range(41, 49)))
+
+        color_dict = {}
+        for label in unique_labels:
+            # Find the 0-based index that matches Supervision's class_id
+            class_id = class_labels.index(int(label))
+            color_idx = class_id % len(custom_palette)
+            color_dict[int(label)] = str(custom_palette[color_idx])
+        print(f"color_dict={color_dict}")
+        # for i, label in enumerate(unique_labels):
+        #     color_idx = i % len(custom_palette)
+        #     color_dict[int(label)] = str(custom_palette[color_idx])
+        # print(f"color_dict={color_dict}")
+        # This creates an internal array named "labels_rgb"
+        pv_mesh.color_labels(colors=color_dict, scalars="labels", inplace=True)
 
     # Render the mesh inside the notebook
     plotter = pv.Plotter()
     plotter.add_mesh(
         pv_mesh,
         color="lightgrey",
-        scalars="labels" if vertex_labels is not None else None,
+        scalars="labels_rgb" if vertex_labels is not None else None,
+        rgb=True if vertex_labels is not None else False,
         show_scalar_bar=False,
         smooth_shading=True,
     )
