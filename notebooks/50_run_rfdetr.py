@@ -60,18 +60,9 @@ test_split_sample_ids = prefixes = {"_".join(f.stem.split("_")[:2]) for f in png
 print(f"test_split_sample_ids: {len(test_split_sample_ids)}")
 
 # %%
-custom_palette = nb_utils.get_color_palette()
-sns.palplot(custom_palette)
-
-def rgb_hex_to_bgr_hex(hex_str):
-    hex_str = hex_str.lstrip('#')
-    # Slice the string: RR=0:2, GG=2:4, BB=4:6
-    # Reassemble as BB GG RR
-    return f"#{hex_str[4:6]}{hex_str[2:4]}{hex_str[0:2]}"
-
-bgr_custom_palette = [rgb_hex_to_bgr_hex(c) for c in custom_palette]
-
-sv_custom_palette = sv.ColorPalette.from_hex(bgr_custom_palette)
+colors = nb_utils.get_colors()
+print(f"colors: {len(colors)}, {colors}")
+sns.palplot(colors)
 
 # %%
 test_sample = random.choice(list(test_split_sample_ids))
@@ -92,21 +83,18 @@ for i, det in enumerate(ip.detections):
 for i, mask in enumerate(ip.masks):
     cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
 
-annotated_images = []
-mask_annotator = sv.MaskAnnotator(color=sv_custom_palette)
-for det in ip.detections:
-    color_dict_sv = {}
-    for class_id in det.class_id:
-        color_dict_sv[int(class_id)] = sv_custom_palette.by_idx(class_id).as_hex()
-    print(f"color_dict_sv={color_dict_sv}")
+colors_sv = nb_utils.convert_colors_sv(colors)
 
+annotated_images = []
+mask_annotator = sv.MaskAnnotator(color=colors_sv)
+for det in ip.detections:
     annotated_img = mask_annotator.annotate(
         scene=det.metadata["source_image"], detections=det
     )
     annotated_images.append(annotated_img)
 
 label_annotator = sv.LabelAnnotator(
-    color=sv_custom_palette, text_position=sv.Position.CENTER, text_padding=0
+    color=colors_sv, text_position=sv.Position.CENTER, text_padding=0
 )
 for i, det in enumerate(ip.detections):
     labels = [
@@ -117,7 +105,8 @@ for i, det in enumerate(ip.detections):
 
 views = np.array(config["2d_projection"]["views"])
 
-nb_utils.plot_mesh(mesh, vertex_labels)
+colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
+nb_utils.plot_mesh(mesh, vertex_labels, colors_pv)
 nb_utils.plot_image_grid(
     images=annotated_images,
     titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],

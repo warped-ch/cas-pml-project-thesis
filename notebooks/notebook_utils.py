@@ -6,24 +6,60 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
+import supervision as sv
 from matplotlib.colors import Colormap
 from pytorch3d.structures import Meshes
 
 pv.set_jupyter_backend("trame")
 
 
-def get_color_palette(palette: Any = "tab10", palette_size: int = 17):
+def get_colors(palette: Any = "tab10", palette_size: int = 17) -> list[str]:
+    """
+    Returns a list of color strings (hex, RGB).
+
+    Args:
+        palette_size: matches the number of class IDs per jaw (lower/upper) by default.
+    """
     colors = glasbey.extend_palette(palette, palette_size)
 
+    # find the "greyest" color and move it to the front (gingiva, class_0)
     rgb_arr = mcolors.to_rgba_array(colors)[:, :3]
     hsv_arr = mcolors.rgb_to_hsv(rgb_arr)
-
-    # find index of lowest saturation
-    greyest_idx = np.argmin(hsv_arr[:, 1])
-    # pop the greyest and move to the front (gingiva, class_0)
+    greyest_idx = np.argmin(hsv_arr[:, 1])  # find index of lowest saturation
     colors.insert(0, colors.pop(greyest_idx))
 
     return colors
+
+
+def convert_colors_pv(colors: list[str], class_ids: list[int]) -> dict[int, str]:
+    """
+    Maps class IDs to colors based on their index position.
+
+    Args:
+        colors: A list of color strings (hex, RGB).
+        class_ids: A list of unique class IDs (sparse FDI labels).
+
+    Returns:
+        A color dict mapping each class ID (int) to a color string (hex, RGB).
+    """
+    color_dict = {}
+    for class_id in class_ids:
+        # Find the class_idx that matches Supervision's class_id (0-based, continuous)
+        class_idx = class_ids.index(int(class_id))
+        color_idx = class_idx % len(colors)
+        color_dict[int(class_id)] = str(colors[color_idx])
+    return color_dict
+
+
+def convert_colors_sv(colors: list[str]) -> sv.ColorPalette:
+    def hex_rgb_to_hex_bgr(hex_str):
+        # Standard Hex: #RRGGBB -> #BBGGRR
+        return f"#{hex_str[5:7]}{hex_str[3:5]}{hex_str[1:3]}"
+
+    # TODO: bug in Supervision?
+    # https://supervision.roboflow.com/draw/color/#colorpalette
+    colors_bgr = [hex_rgb_to_hex_bgr(c) for c in colors]
+    return sv.ColorPalette.from_hex(colors_bgr)
 
 
 def plot_histogram_grid(
@@ -91,7 +127,9 @@ def plot_image_grid(
     plt.show()
 
 
-def plot_mesh(mesh: Meshes, vertex_labels: np.ndarray = None):
+def plot_mesh(
+    mesh: Meshes, vertex_labels: np.ndarray = None, colors: dict[int, str] | None = None
+):
     # Extract vertices and faces to CPU NumPy arrays
     # PyTorch3D stores faces as a tensor of shape (F, 3)
     verts = mesh.verts_packed().detach().cpu().numpy()
@@ -107,25 +145,7 @@ def plot_mesh(mesh: Meshes, vertex_labels: np.ndarray = None):
 
     if vertex_labels is not None:
         pv_mesh.point_data["labels"] = vertex_labels
-
-        custom_palette = get_color_palette()
-        unique_labels = np.unique(vertex_labels)
-
-        class_labels = sorted([0] + list(range(11, 19)) + list(range(21, 29)) + list(range(31, 39)) + list(range(41, 49)))
-
-        color_dict = {}
-        for label in unique_labels:
-            # Find the 0-based index that matches Supervision's class_id
-            class_id = class_labels.index(int(label))
-            color_idx = class_id % len(custom_palette)
-            color_dict[int(label)] = str(custom_palette[color_idx])
-        print(f"color_dict={color_dict}")
-        # for i, label in enumerate(unique_labels):
-        #     color_idx = i % len(custom_palette)
-        #     color_dict[int(label)] = str(custom_palette[color_idx])
-        # print(f"color_dict={color_dict}")
-        # This creates an internal array named "labels_rgb"
-        pv_mesh.color_labels(colors=color_dict, scalars="labels", inplace=True)
+        pv_mesh.color_labels(colors=colors, scalars="labels", inplace=True)
 
     # Render the mesh inside the notebook
     plotter = pv.Plotter()
