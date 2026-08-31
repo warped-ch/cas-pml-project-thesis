@@ -63,7 +63,15 @@ print(f"test_split_sample_ids: {len(test_split_sample_ids)}")
 custom_palette = nb_utils.get_color_palette()
 sns.palplot(custom_palette)
 
-sv_custom_palette = sv.ColorPalette.from_hex(custom_palette)
+def rgb_hex_to_bgr_hex(hex_str):
+    hex_str = hex_str.lstrip('#')
+    # Slice the string: RR=0:2, GG=2:4, BB=4:6
+    # Reassemble as BB GG RR
+    return f"#{hex_str[4:6]}{hex_str[2:4]}{hex_str[0:2]}"
+
+bgr_custom_palette = [rgb_hex_to_bgr_hex(c) for c in custom_palette]
+
+sv_custom_palette = sv.ColorPalette.from_hex(bgr_custom_palette)
 
 # %%
 test_sample = random.choice(list(test_split_sample_ids))
@@ -87,6 +95,11 @@ for i, mask in enumerate(ip.masks):
 annotated_images = []
 mask_annotator = sv.MaskAnnotator(color=sv_custom_palette)
 for det in ip.detections:
+    color_dict_sv = {}
+    for class_id in det.class_id:
+        color_dict_sv[int(class_id)] = sv_custom_palette.by_idx(class_id).as_hex()
+    print(f"color_dict_sv={color_dict_sv}")
+
     annotated_img = mask_annotator.annotate(
         scene=det.metadata["source_image"], detections=det
     )
