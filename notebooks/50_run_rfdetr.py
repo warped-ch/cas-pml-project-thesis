@@ -76,8 +76,6 @@ print(f"temp_out_path={temp_out_path}")
 temp_out_path.mkdir(parents=True, exist_ok=True)
 
 mesh, vertex_labels = ip.run_inference(obj_file)
-# TODO: contains "0" and "1"
-print(f"class ids: {np.unique(vertex_labels)}")
 for i, det in enumerate(ip.detections):
     cv2.imwrite(temp_out_path / f"image_{i}.png", det.metadata["source_image"])
 for i, mask in enumerate(ip.masks):
