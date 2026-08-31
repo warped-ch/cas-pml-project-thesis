@@ -60,6 +60,9 @@ test_split_sample_ids = prefixes = {"_".join(f.stem.split("_")[:2]) for f in png
 print(f"test_split_sample_ids: {len(test_split_sample_ids)}")
 
 # %%
+# TODO: supervision and pyvista indexing into the colormap might still lead to tooth color same as gingiva:
+# fdi class label 31 -> 0-based class_idx: 17 -> color index: class_idx % len(colors) -> 17%17=0 == gingiva...
+
 colors = nb_utils.get_colors()
 print(f"colors: {len(colors)}, {colors}")
 sns.palplot(colors)
