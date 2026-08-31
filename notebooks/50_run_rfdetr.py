@@ -64,6 +64,11 @@ colors = nb_utils.get_colors()
 print(f"colors: {len(colors)}, {colors}")
 sns.palplot(colors)
 
+colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
+print(f"colors_pv: {len(colors_pv)}, {colors_pv}")
+colors_sv = nb_utils.convert_colors_sv(colors)
+print(f"colors_sv: {len(colors_sv)}, {colors_sv}")
+
 # %%
 test_sample = random.choice(list(test_split_sample_ids))
 print(f"test_sample={test_sample}")
@@ -80,8 +85,6 @@ for i, det in enumerate(ip.detections):
     cv2.imwrite(temp_out_path / f"image_{i}.png", det.metadata["source_image"])
 for i, mask in enumerate(ip.masks):
     cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
-
-colors_sv = nb_utils.convert_colors_sv(colors)
 
 annotated_images = []
 mask_annotator = sv.MaskAnnotator(color=colors_sv)
@@ -103,7 +106,6 @@ for i, det in enumerate(ip.detections):
 
 views = np.array(config["2d_projection"]["views"])
 
-colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
 nb_utils.plot_mesh(mesh, vertex_labels, colors_pv)
 nb_utils.plot_image_grid(
     images=annotated_images,

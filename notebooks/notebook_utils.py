@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 import supervision as sv
-from matplotlib.colors import Colormap
 from pytorch3d.structures import Meshes
 
 pv.set_jupyter_backend("trame")
@@ -99,7 +98,7 @@ def plot_image_grid(
     background_label: float | None = None,
     titles: list[str] | None = None,
     columns: int = 3,
-    cmap: str | Colormap | None = None,
+    cmap: str | mcolors.Colormap | None = None,
 ) -> None:
     if isinstance(images, list):
         images = np.array(images)
