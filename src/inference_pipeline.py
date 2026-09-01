@@ -41,7 +41,9 @@ class InferencePipeline:
         mask_value = int(class_name.split("_")[1])
         return mask_value
 
-    def run_inference(self, obj_file: str) -> tuple[Meshes, NDArray[np.uint8]]:
+    def run_inference(
+        self, obj_file: str, threshold: float = 0.5
+    ) -> tuple[Meshes, NDArray[np.uint8]]:
         self.detections = None
         self.masks = None
 
@@ -62,7 +64,7 @@ class InferencePipeline:
 
         self.detections = self.model.predict(
             images=list(images),
-            threshold=0.5,
+            threshold=threshold,
         )
 
         # TODO: potential bug (removes gingiva, only teeth labels survive, rest is 0)
