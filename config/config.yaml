@@ -5,7 +5,6 @@ dataset_path_2d: "data/Teeth2D"
 dataset_path_3d: "data/Teeth3DS+"
 dataframe_eda: "data/eda.csv"
 output_rf_detr_train: "output/rf_detr_train"
-output_rf_detr_test: "output/rf_detr_test"
 
 class_ids: [0, 
   11, 12, 13, 14, 15, 16, 17, 18, 

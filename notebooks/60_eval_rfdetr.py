@@ -33,39 +33,45 @@ with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 # %% [markdown]
-# ## Evaluate on Teeth2D dataset
+# ## Evaluate RF-DETR Teeth2D models
 
 # %%
-best_model_chkpt_path = (
-    root_path
-    / config.get("output_rf_detr_train")
-    / "20260829_114546/Teeth2D/checkpoint_best_ema.pth"
+train_out_path = (
+    root_path / config.get("output_rf_detr_train") / "20260828_064008/Teeth2D"
 )
-print(f"best_model_chkpt_path={best_model_chkpt_path}")
+print(f"train_out_path={train_out_path}")
 
-dataset_path_2d = root_path / "data" / "Teeth2D"
-print(f"dataset_path_2d={dataset_path_2d}")
+train_config_file = train_out_path / "training_config.json"
+print(f"train_config_file={train_config_file}")
+
+with open(train_config_file, "r") as f:
+    train_config = json.load(f)
+
+dataset_dir = Path(train_config["train_config"]["dataset_dir"])
+print(f"dataset_dir={dataset_dir}")
 
 split = "test"
 
-metrics_file = (
-    root_path
-    / config["output_rf_detr_test"]
-    / f"{best_model_chkpt_path.parent.parent.stem}_{best_model_chkpt_path.parent.stem}_{split}.json"
-)
-metrics_file.parent.mkdir(parents=True, exist_ok=True)
-print(f"metrics_file={metrics_file}")
+pth_files = list(train_out_path.glob("*.pth"))
+print(f"pth_files: {len(pth_files)}, {[pth_file.name for pth_file in pth_files]}")
 
-model = RFDETRSegMedium(pretrain_weights=best_model_chkpt_path, device=device)
-print(f"model.class_names: {model.class_names}")
-print(f"model.model_config.resolution: {model.model_config.resolution}")
+for pth_file in pth_files:
+    print(f"pth_file={pth_file}")
 
-metrics = model.evaluate(
-    dataset_dir=str(dataset_path_2d),
-    split=split,
-    batch_size=64,
-    progress_bar="tqdm",
-)
-with open(metrics_file, "w") as f:
-    json.dump(metrics, f)
-print("Evaluation Metrics:", metrics)
+    model = RFDETRSegMedium(pretrain_weights=str(pth_file), device=device)
+    print(f"model.class_names: {model.class_names}")
+    print(f"model.model_config.resolution: {model.model_config.resolution}")
+
+    metrics = {}
+    metrics = model.evaluate(
+        dataset_dir=str(dataset_dir),
+        split=split,
+        batch_size=64,
+        progress_bar="tqdm",
+    )
+
+    metrics_file = train_out_path / f"eval_{split}_{pth_file.stem}.json"
+    metrics_file.parent.mkdir(parents=True, exist_ok=True)
+    print(f"metrics_file={metrics_file}")
+    with open(metrics_file, "w") as f:
+        json.dump(metrics, f)
