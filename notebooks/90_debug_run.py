@@ -16,7 +16,6 @@
 # # Debugging inference issues
 
 # %%
-import random
 import sys
 from pathlib import Path
 
@@ -75,6 +74,7 @@ print(f"colors_sv: {len(colors_sv)}, {colors_sv}")
 
 # %%
 obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
+#obj_file = dataset_path_3d / "raw/upper/SJDH33M1/SJDH33M1_upper.obj"
 print(f"obj_file={obj_file}")
 
 temp_out_path = dataset_path_3d.parent / "temp" / Path(obj_file).stem
@@ -88,7 +88,8 @@ for i, det in enumerate(ip.detections):
 for i, mask in enumerate(ip.masks):
     cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
 
-# %%
+annotated_images = []
+
 mask_annotator = sv.MaskAnnotator(color=colors_sv)
 label_annotator = sv.LabelAnnotator(
     color=colors_sv,
@@ -98,6 +99,24 @@ label_annotator = sv.LabelAnnotator(
     text_position=sv.Position.CENTER,
 )
 
+for i, det in enumerate(ip.detections):
+    labels = [class_name.replace("class_", "") for class_name in det["class_name"]]
+    print(f"det[{i}]: class_ids={det.class_id}, labels={labels}")
+
+    annotated_img = mask_annotator.annotate(
+        scene=det.metadata["source_image"].copy(), detections=det
+    )
+    annotated_img = label_annotator.annotate(annotated_img, det, labels)
+    annotated_images.append(annotated_img)
+
+nb_utils.plot_mesh(mesh, vertex_labels, colors_pv)
+nb_utils.plot_image_grid(
+    images=annotated_images,
+    titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
+)
+
+# %%
+# log individual per class detections
 for i, det in enumerate(ip.detections):
     print(
         f"det[{i}]: class_ids={det.class_id}, fdi_labels={[class_name.replace('class_', '') for class_name in det['class_name']]}"

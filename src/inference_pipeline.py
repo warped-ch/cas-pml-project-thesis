@@ -69,30 +69,15 @@ class InferencePipeline:
             threshold=threshold,
         )
 
-        # Filter detections to keep only the best detection per class (highest confidence)
-        # TODO: this will break "Teeth3DS+\raw\upper\SJDH33M1\SJDH33M1_upper.obj"
-        self.detections = []
-        for det_raw in self.detections_raw:
-            # apply class agnostic NMS to the individual detections
-            # NMS: https://github.com/roboflow/rf-detr/issues/187
-            # TODO: consider using with_nmm?
-            # https://supervision.roboflow.com/develop/detection/core/#supervision.detection.core.Detections.with_nmm
-            det = det_raw.with_nms(threshold=0.5, class_agnostic=True)
-
-            if len(det) == 0:
-                self.detections.append(det)
-                continue
-
-            best_class_indices = []
-            # loop the detections of one view image by class id
-            for class_id in np.unique(det.class_id):
-                # find indices for this specific class_id
-                class_indices = np.where(det.class_id == class_id)[0]
-                # find index of the detection with highest confidence for this class
-                best_idx = class_indices[np.argmax(det.confidence[class_indices])]
-                best_class_indices.append(best_idx)
-            # keep only the best detection per class
-            self.detections.append(det[np.array(best_class_indices)])
+        # Filter detections
+        # apply class agnostic NMS to filter heavily overlapping detections
+        # NMS: https://github.com/roboflow/rf-detr/issues/187
+        # TODO: consider using with_nmm?
+        # https://supervision.roboflow.com/develop/detection/core/#supervision.detection.core.Detections.with_nmm
+        self.detections = [
+            det.with_nms(threshold=0.5, class_agnostic=True)
+            for det in self.detections_raw
+        ]
 
         # TODO: potential bug (removes gingiva, only teeth labels survive, rest is 0)
         self.masks = []
