@@ -13,7 +13,7 @@
 # ---
 
 # %% [markdown]
-# # Debugging inference issues
+# # Debugging edge cases
 
 # %%
 import sys
