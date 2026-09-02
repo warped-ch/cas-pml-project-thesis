@@ -43,3 +43,33 @@ class PostProcessing:
                 cleaned_labels[largest_comp] = tooth_id
 
         return cleaned_labels
+
+    def fill_holes(
+        self, vertex_labels: np.ndarray, iterations: int = 3, background_label: int = 0
+    ):
+        """
+        Fill holes using iterative majority voting from tooth neighbors.
+        """
+        filled_labels = vertex_labels.copy()
+        # list of arrays where vertex_neighbors[i] are neighbors of vertex i
+        vertex_neighbors = self.mesh.vertex_neighbors
+
+        for _ in range(iterations):
+            new_labels = filled_labels.copy()
+
+            holes = np.where(filled_labels == background_label)[0]
+            for idx in holes:
+                neighbor_labels = filled_labels[vertex_neighbors[idx]]
+                # filter out background neighbors (only consider tooth neighbors)
+                valid_neighbors = neighbor_labels[neighbor_labels != background_label]
+                if len(valid_neighbors) > 0:
+                    # set to most common neighbor label (majority vote)
+                    counts = np.bincount(valid_neighbors)
+                    new_labels[idx] = np.argmax(counts)
+
+            filled_labels = new_labels
+            # if no more background labels, we're done
+            if not np.any(filled_labels == background_label):
+                break
+
+        return filled_labels

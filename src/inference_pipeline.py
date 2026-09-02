@@ -101,6 +101,9 @@ class InferencePipeline:
             mesh_verts=mesh.verts_packed().detach().cpu().numpy(),
             mesh_faces=mesh.faces_packed().detach().cpu().numpy(),
         )
-        vertex_labels = post_proc.keep_largest_components(self.vertex_labels_raw)
+        vertex_labels = post_proc.keep_largest_components(
+            vertex_labels=self.vertex_labels_raw
+        )
+        vertex_labels = post_proc.fill_holes(vertex_labels=vertex_labels)
 
         return (mesh.cpu(), vertex_labels)
