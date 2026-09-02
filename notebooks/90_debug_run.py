@@ -73,8 +73,12 @@ colors_sv = nb_utils.convert_colors_sv(colors)
 print(f"colors_sv: {len(colors_sv)}, {colors_sv}")
 
 # %%
-obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
-#obj_file = dataset_path_3d / "raw/upper/SJDH33M1/SJDH33M1_upper.obj"
+# obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
+# obj_file = dataset_path_3d / "raw/upper/SJDH33M1/SJDH33M1_upper.obj"
+
+# misprediction on 45, 46 / post processing failing on 46 (still some largest component leftover of mispredicted 47?)
+obj_file = dataset_path_3d / "raw/lower/01FAYE3T/01FAYE3T_lower.obj"
+
 print(f"obj_file={obj_file}")
 
 temp_out_path = dataset_path_3d.parent / "temp" / Path(obj_file).stem
