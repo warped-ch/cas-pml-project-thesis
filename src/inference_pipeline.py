@@ -98,6 +98,7 @@ class InferencePipeline:
         )
 
         post_proc = post_processing.PostProcessing(
+            self.config,
             mesh_verts=mesh.verts_packed().detach().cpu().numpy(),
             mesh_faces=mesh.faces_packed().detach().cpu().numpy(),
         )

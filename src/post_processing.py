@@ -1,22 +1,27 @@
+from typing import Any
+
 import numpy as np
 import trimesh
 
 
 class PostProcessing:
-    def __init__(self, mesh_verts: np.ndarray, mesh_faces: np.ndarray):
-        self.mesh = trimesh.Trimesh(vertices=mesh_verts, faces=mesh_faces)
-
-    def keep_largest_components(
-        self, vertex_labels: np.ndarray, background_label: int = 0
+    def __init__(
+        self, config: dict[str, Any], mesh_verts: np.ndarray, mesh_faces: np.ndarray
     ):
+        self.mesh = trimesh.Trimesh(vertices=mesh_verts, faces=mesh_faces)
+        self.edges_unique = self.mesh.edges_unique
+
+        self.background_value = config["2d_projection"]["background_value"]
+
+    def keep_largest_components(self, vertex_labels: np.ndarray):
         """
         For each tooth label, keep only the largest connected cluster of vertices.
         """
-        cleaned_labels = np.full_like(vertex_labels, background_label)
+        cleaned_labels = np.full_like(vertex_labels, self.background_value)
 
         unique_teeth = np.unique(vertex_labels)
         # ignore background
-        unique_teeth = unique_teeth[unique_teeth != background_label]
+        unique_teeth = unique_teeth[unique_teeth != self.background_value]
 
         for tooth_id in unique_teeth:
             # Get all tooth vertices
@@ -26,10 +31,9 @@ class PostProcessing:
 
             # Filter mesh edges:
             # keep only edges where both vertices have this tooth_id
-            edges = self.mesh.edges_unique
             mask = vertex_labels == tooth_id
-            edge_mask = mask[edges[:, 0]] & mask[edges[:, 1]]
-            tooth_edges = edges[edge_mask]
+            edge_mask = mask[self.edges_unique[:, 0]] & mask[self.edges_unique[:, 1]]
+            tooth_edges = self.edges_unique[edge_mask]
 
             # Find connected components:
             # pass the nodes list to ensure isolated vertices are counted as components
@@ -45,7 +49,7 @@ class PostProcessing:
 
         return cleaned_labels
 
-    def fill_holes(self, vertex_labels: np.ndarray, background_label: int = 0):
+    def fill_holes(self, vertex_labels: np.ndarray):
         """
         Fill holes (background segments that are fully enclosed by a tooth).
         """
@@ -53,9 +57,7 @@ class PostProcessing:
 
         unique_teeth = np.unique(vertex_labels)
         # ignore background
-        unique_teeth = unique_teeth[unique_teeth != background_label]
-
-        edges = self.mesh.edges_unique
+        unique_teeth = unique_teeth[unique_teeth != self.background_value]
 
         for tooth_id in unique_teeth:
             # get all vertices which don't belong to the current tooth
@@ -63,7 +65,10 @@ class PostProcessing:
 
             # find connected components excluding the current tooth
             other_mask = vertex_labels != tooth_id
-            other_edges = edges[other_mask[edges[:, 0]] & other_mask[edges[:, 1]]]
+            other_edges = self.edges_unique[
+                other_mask[self.edges_unique[:, 0]]
+                & other_mask[self.edges_unique[:, 1]]
+            ]
             other_components = trimesh.graph.connected_components(
                 edges=other_edges, nodes=other_indices
             )
@@ -78,9 +83,9 @@ class PostProcessing:
             for i, component in enumerate(other_components):
                 if i == outside_component_idx:
                     continue
-                # only fill true holes (background_label)
+                # only fill true holes (background_value)
                 component_list = list(component)
-                if np.all(vertex_labels[component_list] == background_label):
+                if np.all(vertex_labels[component_list] == self.background_value):
                     filled_labels[component_list] = tooth_id
 
         return filled_labels
