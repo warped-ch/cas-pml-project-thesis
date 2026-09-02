@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from pytorch3d.structures import Meshes
 from rfdetr import RFDETRSegMedium
 
-from . import file_io, view_projector
+from . import file_io, post_processing, view_projector
 
 
 class InferencePipeline:
@@ -34,6 +34,7 @@ class InferencePipeline:
         self.detections_raw = None
         self.detections = None
         self.mask = None
+        self.vertex_labels_raw = None
 
     # TODO: "class_1" instead of "class_0"
     # TODO: hack?
@@ -48,6 +49,7 @@ class InferencePipeline:
         self.detections_raw = None
         self.detections = None
         self.masks = None
+        self.vertex_labels_raw = None
 
         mesh = file_io.load_mesh_origin_aligned(obj_file, device=self.device)
 
@@ -91,8 +93,14 @@ class InferencePipeline:
                 combined_mask[mask] = mask_value
             self.masks.append(combined_mask)
 
-        vertex_labels = self.view_projector.back_project_vertex_labels(
+        self.vertex_labels_raw = self.view_projector.back_project_vertex_labels(
             mesh, np.stack(self.masks, axis=0)
         )
+
+        post_proc = post_processing.PostProcessing(
+            mesh_verts=mesh.verts_packed().detach().cpu().numpy(),
+            mesh_faces=mesh.faces_packed().detach().cpu().numpy(),
+        )
+        vertex_labels = post_proc.keep_largest_components(self.vertex_labels_raw)
 
         return (mesh.cpu(), vertex_labels)
