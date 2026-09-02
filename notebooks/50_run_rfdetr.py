@@ -117,6 +117,7 @@ views = np.array(config["2d_projection"]["views"])
 
 nb_utils.plot_mesh(mesh, ip.vertex_labels_raw, colors_pv)
 nb_utils.plot_mesh(mesh, vertex_labels, colors_pv)
+
 nb_utils.plot_image_grid(
     images=annotated_images,
     titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],

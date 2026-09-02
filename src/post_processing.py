@@ -13,6 +13,7 @@ class PostProcessing:
         For each tooth label, keep only the largest connected cluster of vertices.
         """
         cleaned_labels = np.full_like(vertex_labels, background_label)
+
         unique_teeth = np.unique(vertex_labels)
         # ignore background
         unique_teeth = unique_teeth[unique_teeth != background_label]
@@ -44,32 +45,42 @@ class PostProcessing:
 
         return cleaned_labels
 
-    def fill_holes(
-        self, vertex_labels: np.ndarray, iterations: int = 3, background_label: int = 0
-    ):
+    def fill_holes(self, vertex_labels: np.ndarray, background_label: int = 0):
         """
-        Fill holes using iterative majority voting from tooth neighbors.
+        Fill holes (background segments that are fully enclosed by a tooth).
         """
         filled_labels = vertex_labels.copy()
-        # list of arrays where vertex_neighbors[i] are neighbors of vertex i
-        vertex_neighbors = self.mesh.vertex_neighbors
 
-        for _ in range(iterations):
-            new_labels = filled_labels.copy()
+        unique_teeth = np.unique(vertex_labels)
+        # ignore background
+        unique_teeth = unique_teeth[unique_teeth != background_label]
 
-            holes = np.where(filled_labels == background_label)[0]
-            for idx in holes:
-                neighbor_labels = filled_labels[vertex_neighbors[idx]]
-                # filter out background neighbors (only consider tooth neighbors)
-                valid_neighbors = neighbor_labels[neighbor_labels != background_label]
-                if len(valid_neighbors) > 0:
-                    # set to most common neighbor label (majority vote)
-                    counts = np.bincount(valid_neighbors)
-                    new_labels[idx] = np.argmax(counts)
+        edges = self.mesh.edges_unique
 
-            filled_labels = new_labels
-            # if no more background labels, we're done
-            if not np.any(filled_labels == background_label):
-                break
+        for tooth_id in unique_teeth:
+            # get all vertices which don't belong to the current tooth
+            other_indices = np.where(vertex_labels != tooth_id)[0]
+
+            # find connected components excluding the current tooth
+            other_mask = vertex_labels != tooth_id
+            other_edges = edges[other_mask[edges[:, 0]] & other_mask[edges[:, 1]]]
+            other_components = trimesh.graph.connected_components(
+                edges=other_edges, nodes=other_indices
+            )
+            if len(other_components) <= 1:
+                # no holes for this tooth
+                continue
+
+            # the largest component is rest of the mesh, the part outside the current tooth boundary
+            outside_component_idx = np.argmax([len(c) for c in other_components])
+
+            # fill holes inside the tooth
+            for i, component in enumerate(other_components):
+                if i == outside_component_idx:
+                    continue
+                # only fill true holes (background_label)
+                component_list = list(component)
+                if np.all(vertex_labels[component_list] == background_label):
+                    filled_labels[component_list] = tooth_id
 
         return filled_labels
