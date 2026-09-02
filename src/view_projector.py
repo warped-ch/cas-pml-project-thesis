@@ -170,7 +170,7 @@ class ViewProjector:
         # define face label by taking the first vertex
         # face_labels = face_vert_labels[:, 0]  # Shape: (F,)
         # define face label by majority vote
-        face_labels = torch.mode(face_vert_labels, dim=1).values # Shape: (F,)
+        face_labels = torch.mode(face_vert_labels, dim=1).values  # Shape: (F,)
         face_labels = face_labels.repeat(self.views.shape[0])
 
         # add a background label

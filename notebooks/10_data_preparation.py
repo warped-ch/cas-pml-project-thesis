@@ -18,11 +18,13 @@
 # %%
 import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import cv2
 import torch
 import yaml
+from joblib import Parallel, delayed
 from torch_geometric.datasets import Teeth3DS
 from tqdm.auto import tqdm
 
@@ -41,14 +43,6 @@ print(f"Using device: {device}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-dataset_path_3d = root_path / config.get("dataset_path_3d")
-dataset_path_3d.mkdir(parents=True, exist_ok=True)
-print(f"dataset_path_3d={dataset_path_3d}")
-
-projections_path = root_path / config["data_path_projections"]
-projections_path.mkdir(parents=True, exist_ok=True)
-print(f"projections_path={projections_path}")
-
 # %% [markdown]
 # ## Dataset: Teeth3DS+
 #
@@ -56,21 +50,31 @@ print(f"projections_path={projections_path}")
 # - Clean up leftovers from `3DTeethLand_challenge` split.
 
 # %%
-split = (
-    "3DTeethSeg22_challenge",
-)  # Teeth3DS, 3DTeethSeg22_challenge, 3DTeethLand_challenge
+dataset_path_3d = root_path / config.get("dataset_path_3d")
+dataset_path_3d.mkdir(parents=True, exist_ok=True)
+print(f"dataset_path_3d={dataset_path_3d}")
 
-train_dataset = Teeth3DS(
-    root=dataset_path_3d,
-    split=split,
-    train=True,
-)
+# check if dataset_path_3d is empty to trigger initial Teeth3DS setup
+if dataset_path_3d.is_dir() and not any(dataset_path_3d.iterdir()):
+    split = (
+        "3DTeethSeg22_challenge",
+    )  # Teeth3DS, 3DTeethSeg22_challenge, 3DTeethLand_challenge
 
-test_dataset = Teeth3DS(
-    root=dataset_path_3d,
-    split=split,
-    train=False,
-)
+    train_dataset = Teeth3DS(
+        root=dataset_path_3d,
+        split=split,
+        train=True,
+    )
+
+    test_dataset = Teeth3DS(
+        root=dataset_path_3d,
+        split=split,
+        train=False,
+    )
+else:
+    print(
+        f"ℹ️ dataset_path_3d exists, skipping download (dataset_path_3d={dataset_path_3d})"
+    )
 
 # Teeth3DS+ dataset still contains samples from 3DTeethLand_challenge (no vertex label files available), remove those
 obj_files = list(dataset_path_3d.rglob("*.obj"))
@@ -87,7 +91,11 @@ for obj_file in obj_files:
 # - Save view and mask images.
 
 # %%
-shutil.rmtree(projections_path, ignore_errors=True)
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+projections_path = root_path / f"{config['data_path_projections']}_{timestamp}"
+projections_path.mkdir(parents=True, exist_ok=True)
+print(f"projections_path={projections_path}")
 
 images_path = projections_path / "images"
 images_path.mkdir(parents=True, exist_ok=True)
@@ -103,21 +111,31 @@ view_proj = view_projector.ViewProjector(config, device)
 
 obj_files = list(dataset_path_3d.rglob("*.obj"))
 
-for obj_file in tqdm(obj_files, desc="Rendering 2D views"):
+
+def process_mesh(obj_file):
     mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
     vertex_labels = file_io.load_vertex_labels(
         obj_file.with_suffix(".json"), class_id_map
     )
+
     images, masks = view_proj.render_2d_views(mesh, vertex_labels)
 
     for image, mask, view in zip(images, masks, view_proj.views):
-        elev = view[0]
-        azim = view[1]
+        elev, azim = view[0], view[1]
 
-        image_file = images_path / f"{obj_file.stem}_elev{elev}_azim{azim}.png"
+        file_prefix = f"{obj_file.stem}_elev{elev}_azim{azim}.png"
+
+        image_file = images_path / file_prefix
         image_file.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(image_file, image)
+        cv2.imwrite(str(image_file), image)
 
-        mask_file = masks_path / f"{obj_file.stem}_elev{elev}_azim{azim}.png"
+        mask_file = masks_path / file_prefix
         mask_file.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(mask_file, mask)
+        cv2.imwrite(str(mask_file), mask)
+
+
+# tuned for max throughput with 16 GB VRAM, safety first
+Parallel(n_jobs=3)(
+    delayed(process_mesh)(obj_file)
+    for obj_file in tqdm(obj_files, desc="Rendering 2D views")
+)
