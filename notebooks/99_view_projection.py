@@ -21,6 +21,7 @@ import cv2
 import matplotlib.pyplot as plt
 import notebook_utils as nb_utils
 import numpy as np
+import seaborn as sns
 import torch
 import yaml
 
@@ -40,6 +41,19 @@ with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 # %%
+colors = nb_utils.get_colors()
+print(f"colors: {len(colors)}, {colors}")
+
+class_ids = config["class_ids"]
+sns.palplot(colors)
+plt.title("FDI class_id color labels", fontsize=16, pad=20)
+plt.xticks(range(len(colors)), class_ids)
+plt.show()
+
+colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
+print(f"colors_pv: {len(colors_pv)}, {colors_pv}")
+
+# %%
 # load a mesh sample
 
 dataset_path = root_path / config["dataset_path_3d"]
@@ -55,27 +69,28 @@ mesh = file_io.load_mesh_origin_aligned(obj_file, device=device)
 # load the vertex labels
 json_file = obj_file.with_suffix(".json")
 print(f"json_file={json_file}")
-vertex_labels = file_io.load_vertex_labels(json_file, config["class_id_map"])
+vertex_labels = file_io.load_vertex_labels(json_file)
 
-nb_utils.plot_mesh(mesh, vertex_labels)
-
-# %% [markdown]
-# ## Render images
+nb_utils.plot_mesh(mesh, vertex_labels, colors_pv)
 
 # %%
-view_proj = view_projector.ViewProjector(config, device)
+# render 2D projections (view images and masks)
 
-images = view_proj.render_2d_images(mesh)
+view_proj = view_projector.ViewProjector(config, device)
+images, masks = view_proj.render_2d_views(mesh, vertex_labels)
 
 # each row in views is [elevation, azimuth]
 views = np.array(config["2d_projection"]["views"])
 
-titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
+# %% [markdown]
+# ## Images
+
+# %%
+print(f"images.shape={images.shape}")
+
+titles = [f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
-    images=images,
-    background_label=None,
-    titles=titles,
-    cmap="gray"
+    images=images, background_label=None, titles=titles, cmap="gray"
 )
 nb_utils.plot_histogram_grid(
     images=images,
@@ -91,35 +106,34 @@ for i, view in enumerate(views):
     cv2.imwrite(temp_out_path / f"view_elev{view[0]}_azim{view[1]}.png", images[i])
 
 # %% [markdown]
-# ## Render label masks
+# ## Masks
 
 # %%
-segmentation_masks = view_proj.render_2d_masks(mesh, vertex_labels)
-print(f"segmentation_masks.shape={segmentation_masks.shape}")
+print(f"masks.shape={masks.shape}")
 
 # visualize segmentation masks
-titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views]
+titles = [f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
-    images=segmentation_masks,
+    images=masks,
     background_label=None,
     titles=titles,
     cmap="grey",
 )
 nb_utils.plot_image_grid(
-    images=segmentation_masks,
+    images=masks,
     background_label=config["2d_projection"]["background_value"],
     titles=titles,
-    cmap=plt.colormaps['viridis'].copy().with_extremes(bad="white")
+    cmap=plt.colormaps["viridis"].copy().with_extremes(bad="white"),
 )
 
 for i, view in enumerate(views):
-    cv2.imwrite(temp_out_path / f"mask_elev{view[0]}_azim{view[1]}.png", segmentation_masks[i])
+    cv2.imwrite(temp_out_path / f"mask_elev{view[0]}_azim{view[1]}.png", masks[i])
 
 # %%
 # roundtrip: back projection of ground truth masks to mesh vertex labels
 
-vertex_labels_out = view_proj.back_project_vertex_labels(mesh, segmentation_masks)
+vertex_labels_out = view_proj.back_project_vertex_labels(mesh, masks)
 print(f"vertex_labels.shape={vertex_labels.shape}")
 print(f"vertex_labels_out.shape={vertex_labels_out.shape}")
 
-nb_utils.plot_mesh(mesh, vertex_labels_out)
+nb_utils.plot_mesh(mesh, vertex_labels_out, colors_pv)

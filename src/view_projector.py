@@ -9,7 +9,6 @@ from pytorch3d.renderer import (
     FoVOrthographicCameras,
     HardPhongShader,
     MeshRasterizer,
-    MeshRenderer,
     RasterizationSettings,
     TexturesVertex,
     camera_position_from_spherical_angles,
@@ -61,11 +60,10 @@ class ViewProjector:
             cull_backfaces=True,
         )
 
-        self.image_renderer = self.__init_image_renderer(cameras, raster_settings)
+        self.rasterizer = MeshRasterizer(
+            cameras=cameras, raster_settings=raster_settings
+        )
 
-        self.mask_rasterizer = self.__init_mask_rasterizer(cameras, raster_settings)
-
-    def __init_image_renderer(self, cameras, raster_settings) -> MeshRenderer:
         light_dir = camera_position_from_spherical_angles(
             distance=1.0,
             elevation=self.views[:, 0],
@@ -84,84 +82,50 @@ class ViewProjector:
             device=self.device,
         )
 
-        bg_rgb_val = self.background_value / 255.0
-        blend_params = BlendParams(
-            background_color=(bg_rgb_val, bg_rgb_val, bg_rgb_val)
-        )
+        bg_val = self.background_value / 255.0
+        blend_params = BlendParams(background_color=(bg_val, bg_val, bg_val))
 
-        return MeshRenderer(
-            rasterizer=MeshRasterizer(cameras=cameras, raster_settings=raster_settings),
-            shader=HardPhongShader(
-                cameras=cameras,
-                lights=lights,
-                blend_params=blend_params,
-                device=self.device,
-            ),
+        self.shader = HardPhongShader(
+            cameras=cameras,
+            lights=lights,
+            blend_params=blend_params,
+            device=self.device,
         )
-
-    def __init_mask_rasterizer(self, cameras, raster_settings) -> MeshRasterizer:
-        return MeshRasterizer(cameras=cameras, raster_settings=raster_settings)
 
     def render_2d_views(
         self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
     ) -> tuple[NDArray[np.uint8], NDArray[np.uint8]]:
-        images = self.render_2d_images(mesh)
-        masks = self.render_2d_masks(mesh, vertex_labels)
-        return images, masks
-
-    def render_2d_images_tensor(self, mesh: Meshes) -> torch.Tensor:
-        """
-        Render multi-view projections of the mesh as images.
-
-        Returns:
-            torch.Tensor: The rendered images (RGB) batch of shape (B, H, W, 3),
-                where B is the batch size (number of views)
-        """
-
-        # define a default color for each vertex
+        # define a default color for each vertex (add textures)
         num_vertices = mesh.verts_packed().shape[0]
-        verts_features = (
-            torch.ones((1, num_vertices, 3), dtype=torch.float32, device=self.device)
-            * 0.75
-        )
+        verts_features = torch.full((1, num_vertices, 3), 0.75, device=self.device)
         mesh.textures = TexturesVertex(verts_features=verts_features)
 
+        # extend the mesh to the number of views (batch processing)
         meshes_ext = mesh.extend(self.views.shape[0])
 
-        images = self.image_renderer(meshes_ext)
+        # rasterization to get the fragments
+        fragments = self.rasterizer(meshes_ext)
+
+        # Generate images
+        images = self.shader(fragments, meshes_ext)
         # ignore alpha channel
-        return images[..., :3]
-
-    def render_2d_images(self, mesh: Meshes) -> NDArray[np.uint8]:
-        images = self.render_2d_images_tensor(mesh)
-
+        images = images[..., :3]
         # convert RGB to grayscale by averaging
         gray_images = images.mean(dim=-1)
-        uint8_images = (gray_images * 255.0).clamp(0, 255).to(torch.uint8)
+        # # TODO: Convert to grayscale: Weighted average is more realistic than mean (0.299R + 0.587G + 0.114B)
+        # gray_images = (
+        #     images[..., 0] * 0.299 + images[..., 1] * 0.587 + images[..., 2] * 0.114
+        # )
+        uint8_images = (gray_images * 255.0).to(torch.uint8)
 
-        # bring the entire batch to CPU and convert to NumPy
-        return uint8_images.cpu().numpy()
-
-    def render_2d_masks(
-        self, mesh: Meshes, vertex_labels: NDArray[np.uint8]
-    ) -> NDArray[np.uint8]:
-        """
-        Render multi-view projection label masks using face index rasterization.
-
-        Instead of rendering colors and guessing pixels, this method uses PyTorch3D's rasterizer to determine exactly
-        which face index is visible at every pixel. It then maps that face back to its vertex labels.
-        """
-        meshes_ext = mesh.extend(self.views.shape[0])
-
-        # get fragments (pix_to_face contains the face index for each pixel)
-        fragments = self.mask_rasterizer(meshes_ext)
+        # Generate masks
+        # pix_to_face contains the face index for each pixel
         # Shape: (N, H, W) -> values are face indices, -1 means background
         pix_to_face = fragments.pix_to_face[..., 0]
 
         # map faces to vertex labels (identical for all view since it's the same mesh)
-        # faces shape: (F, 3) | vertex_labels_tensor shape: (V,)
         faces = mesh.faces_packed()
-        vertex_labels_tensor = torch.from_numpy(vertex_labels).to(mesh.device)
+        vertex_labels_tensor = torch.from_numpy(vertex_labels).to(self.device)
 
         # get the labels of the 3 vertices for every face -> Shape: (F, 3)
         face_vert_labels = vertex_labels_tensor[faces]
@@ -178,8 +142,33 @@ class ViewProjector:
             [face_labels, torch.tensor([self.background_value], device=mesh.device)]
         )
 
-        # generate the final 2D segmentation mask
-        return face_labels_with_bg[pix_to_face].cpu().numpy().astype(np.uint8)
+        uint8_masks = face_labels_with_bg[pix_to_face]
+
+        return uint8_images.cpu().numpy(), uint8_masks.cpu().numpy()
+
+    def render_2d_images_tensor(self, mesh: Meshes) -> torch.Tensor:
+        """
+        Render multi-view projections of the mesh as images.
+
+        Returns:
+            torch.Tensor: The rendered images (RGB) batch of shape (B, H, W, 3),
+                where B is the batch size (number of views)
+        """
+        # define a default color for each vertex (add textures)
+        num_vertices = mesh.verts_packed().shape[0]
+        verts_features = torch.full((1, num_vertices, 3), 0.75, device=self.device)
+        mesh.textures = TexturesVertex(verts_features=verts_features)
+
+        # extend the mesh to the number of views (batch processing)
+        meshes_ext = mesh.extend(self.views.shape[0])
+
+        # rasterization to get the fragments
+        fragments = self.rasterizer(meshes_ext)
+
+        # Generate images
+        images = self.shader(fragments, meshes_ext)
+        # ignore alpha channel
+        return images[..., :3]
 
     def back_project_vertex_labels(
         self, mesh: Meshes, masks: NDArray[np.uint8]
@@ -205,7 +194,7 @@ class ViewProjector:
         # re-run rasterizer to get pix_to_face
         # this tells us which face index is at every pixel (u, v)
         meshes_ext = mesh.extend(num_views)
-        fragments = self.mask_rasterizer(meshes_ext)
+        fragments = self.rasterizer(meshes_ext)
         pix_to_face = fragments.pix_to_face[..., 0]  # (N_views, H, W)
 
         # prepare tensors
@@ -214,11 +203,16 @@ class ViewProjector:
         # filter background
         # create a mask of pixels that actually hit the mesh (PyTorch3D returns -1 for background in pix_to_face)
         hit_mask = pix_to_face >= 0
+        valid_mask = hit_mask
+        # # TODO: check if useful
+        # # also ignore pixels that have the background_value label
+        # label_mask = masks_tensor != self.background_value
+        # valid_mask = hit_mask & label_mask
 
         # extract valid data
         # use modulo operator to map global batch face index to local mesh face index
-        valid_face_indices = pix_to_face[hit_mask] % num_faces_per_mesh
-        valid_labels = masks_tensor[hit_mask]
+        valid_face_indices = pix_to_face[valid_mask] % num_faces_per_mesh
+        valid_labels = masks_tensor[valid_mask]
 
         # TODO: exclude background from voting
         # valid_mask = (valid_labels != self.background_value)
