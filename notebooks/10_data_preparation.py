@@ -18,7 +18,6 @@
 # %%
 import shutil
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -91,11 +90,9 @@ for obj_file in obj_files:
 # - Save view and mask images.
 
 # %%
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-projections_path = root_path / f"{config['data_path_projections']}_{timestamp}"
-projections_path.mkdir(parents=True, exist_ok=True)
+projections_path = root_path / config["data_path_projections"]
 print(f"projections_path={projections_path}")
+shutil.rmtree(projections_path, ignore_errors=True)
 
 images_path = projections_path / "images"
 images_path.mkdir(parents=True, exist_ok=True)
