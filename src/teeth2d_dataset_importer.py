@@ -10,7 +10,7 @@ import fiftyone.utils.data as foud
 class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
     """
     Custom FiftyOne importer for "Teeth2D" dataset, to load images and multiclass segmentation masks.
-    
+
         - https://docs.voxel51.com/user_guide/using_datasets.html#semantic-segmentation
         - https://docs.voxel51.com/user_guide/using_datasets.html#instance-segmentations
 
@@ -40,8 +40,10 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         print(f"mask_targets={self.default_mask_targets}")
 
         self.default_classes = [
-            self.default_mask_targets[cid] for cid in sorted(self.default_mask_targets.keys())
+            self.default_mask_targets[cid]
+            for cid in sorted(self.default_mask_targets.keys())
         ]
+        print(f"default_classes={self.default_classes}")
 
         self._dataset_root = Path(dataset_dir)
         self._images_dir = self._dataset_root / "images"
@@ -66,7 +68,7 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
 
     def __next__(self):
         image_path, mask_path = next(self._iter_uuids)
-        
+
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
 
         # semantic segmentation labels
@@ -93,7 +95,10 @@ class Teeth2DDatasetImporter(foud.LabeledImageDatasetImporter):
         return True
 
     def get_dataset_info(self):
-        return {"default_mask_targets": self.default_mask_targets}
+        return {
+            "default_classes": self.default_classes,
+            "default_mask_targets": self.default_mask_targets,
+        }
 
     @property
     def label_cls(self):
