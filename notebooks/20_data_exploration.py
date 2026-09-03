@@ -49,7 +49,9 @@ with open("../config/config.yaml", "r") as f:
 # print(f"has_model_base: {mesh_utils.has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\upper\018XZVD6\018XZVD6_upper.obj"))}")
 
 # %%
-def load_sample(obj_file: list[str], official_train_split: list[str], official_test_split: list[str]):
+def load_sample(
+    obj_file: list[str], official_train_split: list[str], official_test_split: list[str]
+):
     try:
         vertex_label_file = obj_file.with_suffix(".json")
         if not vertex_label_file.exists():
@@ -57,10 +59,10 @@ def load_sample(obj_file: list[str], official_train_split: list[str], official_t
             return None
 
         mesh_has_material = False
-        with open(obj_file, 'r', encoding='utf-8') as file:
+        with open(obj_file, "r", encoding="utf-8") as file:
             content = file.read()
             if "mtl" in content.lower():
-                mesh_has_material= True
+                mesh_has_material = True
                 print(f"Mesh has material: {obj_file}")
 
         json_data = {}
@@ -94,7 +96,9 @@ dataset_path = root_path / config.get("dataset_path_3d")
 print(f"dataset_path={dataset_path}")
 assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
 
-official_train_split, official_test_split = teeth3ds_utils.load_official_splits(config, root_path)
+official_train_split, official_test_split = teeth3ds_utils.load_official_splits(
+    config, root_path
+)
 
 obj_files = list(dataset_path.rglob("*.obj"))
 
@@ -166,19 +170,15 @@ df.groupby("jaw")["missing_teeth"].describe()
 sns.countplot(df, x="has_model_base", hue="jaw")
 plt.show()
 
-sns.catplot(
-    data=df,
-    kind="count",
-    x="has_model_base",
-    hue="jaw",
-    col="official_split"
-)
+sns.catplot(data=df, kind="count", x="has_model_base", hue="jaw", col="official_split")
 plt.show()
 
 df.groupby("jaw")["has_model_base"].describe()
 
 # check consistency
-has_base_mismatches = df.groupby('id_patient').filter(lambda x: x['has_model_base'].nunique() > 1)
+has_base_mismatches = df.groupby("id_patient").filter(
+    lambda x: x["has_model_base"].nunique() > 1
+)
 if len(has_base_mismatches):
     has_base_mismatches.info()
     has_base_mismatches.head()
@@ -195,8 +195,8 @@ df["mesh_has_material"].describe()
 # only lower or upper jaw in dataset
 
 # get the set of unique patient IDs for each jaw type
-ids_lower = set(df[df['jaw'] == 'lower']['id_patient'])
-ids_upper = set(df[df['jaw'] == 'upper']['id_patient'])
+ids_lower = set(df[df["jaw"] == "lower"]["id_patient"])
+ids_upper = set(df[df["jaw"] == "upper"]["id_patient"])
 print(f"ids_lower={len(ids_lower)}, ids_upper={len(ids_upper)}")
 
 # identify the "missing" cases (only upper or lower jaw present in the dataset)
