@@ -64,14 +64,9 @@ for dataset_path in dataset_paths:
         dataset_dir=str(dataset_path),
         output_dir=output_dir,
         epochs=200,
-        batch_size=8,
-        grad_accum_steps=2,
+        batch_size=4,
+        grad_accum_steps=4,
         lr=1e-4,
-        aug_config={
-            "transforms": [
-                {"type": "Rotate", "limit": 10, "p": 0.3, "border_mode": 0}
-            ]
-        },
         save_dataset_grids=True,
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
