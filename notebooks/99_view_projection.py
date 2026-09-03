@@ -24,6 +24,7 @@ import numpy as np
 import seaborn as sns
 import torch
 import yaml
+from matplotlib.colors import ListedColormap
 
 sys.path.append(str(Path.cwd().parent))
 from src import file_io, view_projector
@@ -111,6 +112,9 @@ for i, view in enumerate(views):
 # %%
 print(f"masks.shape={masks.shape}")
 
+colors_cmap = ListedColormap(colors)
+colors_cmap.set_bad(color="black")
+
 # visualize segmentation masks
 titles = [f"elevation={view[0]}, azimuth={view[1]}" for view in views]
 nb_utils.plot_image_grid(
@@ -123,7 +127,7 @@ nb_utils.plot_image_grid(
     images=masks,
     background_label=config["2d_projection"]["background_value"],
     titles=titles,
-    cmap=plt.colormaps["viridis"].copy().with_extremes(bad="white"),
+    cmap=colors_cmap,
 )
 
 for i, view in enumerate(views):
