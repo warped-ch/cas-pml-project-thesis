@@ -26,6 +26,7 @@ dependencies = [
   "joblib>=1.5.3",
   "glasbey>=0.3.0",
   "trimesh>=5.1.0",
+  "scipy>=1.18.1",
 ]
 
 [dependency-groups]

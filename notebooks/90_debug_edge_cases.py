@@ -73,11 +73,14 @@ colors_sv = nb_utils.convert_colors_sv(colors)
 print(f"colors_sv: {len(colors_sv)}, {colors_sv}")
 
 # %%
-# obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
-# obj_file = dataset_path_3d / "raw/upper/SJDH33M1/SJDH33M1_upper.obj"
-
+# misprediction on 33, 34 / post processing leaves 33 completely enclosed by 34
+#obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
+# only two peaks visible for 14 / post processing relabels parts of it to 15
+#obj_file = dataset_path_3d / "raw/upper/SJDH33M1/SJDH33M1_upper.obj"
 # misprediction on 45, 46 / post processing failing on 46 (still some largest component leftover of mispredicted 47?)
-obj_file = dataset_path_3d / "raw/lower/01FAYE3T/01FAYE3T_lower.obj"
+#obj_file = dataset_path_3d / "raw/lower/01FAYE3T/01FAYE3T_lower.obj"
+# misprediction on 15, 16 / postprocessing fails
+obj_file = dataset_path_3d / "raw/upper/CZ0XDR02/CZ0XDR02_upper.obj"
 
 print(f"obj_file={obj_file}")
 
