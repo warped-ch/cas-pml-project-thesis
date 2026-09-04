@@ -64,7 +64,7 @@ for dataset_path in dataset_paths:
         dataset_dir=str(dataset_path),
         output_dir=output_dir,
         epochs=200,
-        batch_size=4,
+        batch_size=8,
         grad_accum_steps=4,
         lr=1e-4,
         save_dataset_grids=True,

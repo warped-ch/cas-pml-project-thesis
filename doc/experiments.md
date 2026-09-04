@@ -8,6 +8,30 @@
 
 ```
 
+## rf-detr/20260903_233534
+
+[20260903_233534](../output/rf_detr_train/20260903_233534)
+
+- train params: batch_size=8, grad_accum_steps=4
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=4,
+lr=1e-4,
+save_dataset_grids=True,
+# TODO: speed up training by specifying "num_queries" according to classes in dataset?
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260902_215359
 
 [20260902_215359](../output/rf_detr_train/20260902_215359)
