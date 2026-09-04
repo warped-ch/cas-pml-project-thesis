@@ -43,11 +43,14 @@ print(f"train_out_path={train_out_path}")
 
 train_config_file = train_out_path / "training_config.json"
 print(f"train_config_file={train_config_file}")
+if train_config_file.is_file():
+    with open(train_config_file, "r") as f:
+        train_config = json.load(f)
 
-with open(train_config_file, "r") as f:
-    train_config = json.load(f)
-
-dataset_dir = Path(train_config["train_config"]["dataset_dir"])
+    dataset_dir = Path(train_config["train_config"]["dataset_dir"])
+else:
+    print("⚠️ fallback to dataset_path_2d from own config")
+    dataset_dir = root_path / config.get("dataset_path_2d")
 print(f"dataset_dir={dataset_dir}")
 
 split = "test"
