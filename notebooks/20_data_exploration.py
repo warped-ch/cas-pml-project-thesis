@@ -154,9 +154,26 @@ df_missing_teeth = df_missing_teeth.explode("missing_teeth")
 # reset the index to remove duplicate indices caused by exploding
 df_missing_teeth = df_missing_teeth.reset_index(drop=True)
 
+# number of samples per jaw
+total_jaws = df.groupby("jaw").size().to_dict()
+print(f"total_jaws={total_jaws}")
+# count occurrences of each missing tooth
+df_missing_teeth_counts = df_missing_teeth.groupby(["jaw", "missing_teeth"]).size().reset_index(name="abs_count")
+# calculate percentage (number of patients missing this tooth / total number of patients)
+df_missing_teeth_counts["percentage"] = df_missing_teeth_counts.apply(
+    lambda row: (row["abs_count"] / total_jaws[row["jaw"]]) * 100, axis=1
+)
+
 plt.figure(figsize=(12, 6))
-sns.histplot(df_missing_teeth, x="missing_teeth", hue="jaw", binwidth=1, discrete=True)
-plt.xticks(fdi_utils.FDI_ALL_TEETH, rotation=45)
+sns.set_style("whitegrid")
+ax = sns.barplot(data=df_missing_teeth_counts, x="missing_teeth", y="percentage", hue="jaw")
+for container in ax.containers:
+    ax.bar_label(container, fmt='%.1f')
+ax.set(ylim=(0, 100))
+plt.xticks(rotation=45)
+plt.xlabel("FDI tooth number")
+plt.ylabel("Percentage of missing teeth (%)")
+plt.title("Missing Teeth (relative to jaw)")
 plt.show()
 
 df.groupby("jaw")["missing_teeth"].describe()
