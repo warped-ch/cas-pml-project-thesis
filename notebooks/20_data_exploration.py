@@ -184,10 +184,15 @@ df.groupby("jaw")["missing_teeth"].describe()
 # %%
 # balace of models with and without model base
 
-sns.countplot(df, x="has_model_base", hue="jaw")
+ax = sns.countplot(df, x="has_model_base", hue="jaw")
+for container in ax.containers:
+    ax.bar_label(container)
 plt.show()
 
-sns.catplot(data=df, kind="count", x="has_model_base", hue="jaw", col="official_split")
+g = sns.catplot(data=df, kind="count", x="has_model_base", hue="jaw", col="official_split")
+for ax in g.axes.flat:
+    for container in ax.containers:
+        ax.bar_label(container)
 plt.show()
 
 df.groupby("jaw")["has_model_base"].describe()
