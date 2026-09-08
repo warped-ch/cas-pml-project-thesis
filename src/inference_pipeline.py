@@ -45,7 +45,7 @@ class InferencePipeline:
 
     def run_inference(
         self, obj_file: str, threshold: float = 0.5
-    ) -> tuple[Meshes, NDArray[np.uint8]]:
+    ) -> tuple[Meshes, NDArray[np.uint8], NDArray[np.uint8]]:
         self.detections_raw = None
         self.detections = None
         self.masks = None
@@ -57,14 +57,8 @@ class InferencePipeline:
 
         # tensor from render_2d_images_tensor is in (Batch, H, W, 3) format
         if isinstance(images, torch.Tensor) and images.dim() == 4:
-            print(
-                f"run_inference: images.shape={images.shape}, images.dim={images.dim()}"
-            )
             # convert from (H, W, C) to (C, H, W): permute(0, 3, 1, 2)
             images = images.permute(0, 3, 1, 2)
-            print(
-                f"run_inference: images.shape={images.shape}, images.dim={images.dim()}"
-            )
 
         self.detections_raw = self.model.predict(
             images=list(images),
@@ -108,4 +102,11 @@ class InferencePipeline:
         vertex_labels = post_proc.keep_largest_components(vertex_labels=vertex_labels)
         vertex_labels = post_proc.fill_holes(vertex_labels=vertex_labels)
 
-        return (mesh.cpu(), vertex_labels)
+        # TODO: handle "instances" properly
+        unique_labels = np.unique(vertex_labels)
+        label_to_instance_map = {}
+        for i, label in enumerate(unique_labels, 0):
+            label_to_instance_map[label] = i
+        instances = np.array([label_to_instance_map[l] for l in vertex_labels])
+
+        return (mesh.cpu(), vertex_labels, instances)

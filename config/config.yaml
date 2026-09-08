@@ -5,7 +5,9 @@ data_path_projections: "data/Projections"
 dataset_path_2d: "data/Teeth2D"
 dataset_path_3d: "data/Teeth3DS+"
 dataframe_eda: "data/eda.csv"
+output_path: "output"
 output_rf_detr_train: "output/rf_detr_train"
+temp_path: "temp"
 
 class_ids: [0, 
   11, 12, 13, 14, 15, 16, 17, 18, 
