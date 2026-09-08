@@ -41,11 +41,14 @@ print(f"Using device: {device}")
 with open("../config/config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
+best_model_chkpt_path = root_path / config.get("best_model_chkpt_path")
+print(f"best_model_chkpt_path={best_model_chkpt_path}")
+
 dataset_path_3d = root_path / config.get("dataset_path_3d")
 print(f"dataset_path_3d={dataset_path_3d}")
 
-best_model_chkpt_path = root_path / config.get("best_model_chkpt_path")
-print(f"best_model_chkpt_path={best_model_chkpt_path}")
+temp_path = root_path / config.get("temp_path")
+print(f"temp_path={temp_path}")
 
 ip = inference_pipeline.InferencePipeline(
     chkpt_file=str(best_model_chkpt_path), config=config, device=device
@@ -82,15 +85,15 @@ print(f"test_sample={test_sample}")
 obj_file = str(next(dataset_path_3d.rglob(f"{test_sample}.obj")))
 print(f"obj_file={obj_file}")
 
-temp_out_path = dataset_path_3d.parent / "temp" / Path(obj_file).stem
-print(f"temp_out_path={temp_out_path}")
-temp_out_path.mkdir(parents=True, exist_ok=True)
+temp_path_sample = temp_path / Path(obj_file).stem
+print(f"temp_path_sample={temp_path_sample}")
+temp_path_sample.mkdir(parents=True, exist_ok=True)
 
 mesh, vertex_labels, instances = ip.run_inference(obj_file)
 for i, det in enumerate(ip.detections):
-    cv2.imwrite(temp_out_path / f"image_{i}.png", det.metadata["source_image"])
+    cv2.imwrite(temp_path_sample / f"image_{i}.png", det.metadata["source_image"])
 for i, mask in enumerate(ip.masks):
-    cv2.imwrite(temp_out_path / f"mask_{i}.png", mask)
+    cv2.imwrite(temp_path_sample / f"mask_{i}.png", mask)
 
 annotated_images = []
 

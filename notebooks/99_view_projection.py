@@ -99,12 +99,12 @@ nb_utils.plot_histogram_grid(
     titles=titles,
 )
 
-temp_out_path = dataset_path.parent / "temp" / obj_file.stem
-print(f"temp_out_path={temp_out_path}")
-temp_out_path.mkdir(parents=True, exist_ok=True)
+temp_path_sample = root_path / config.get("temp_path") / obj_file.stem
+print(f"temp_path_sample={temp_path_sample}")
+temp_path_sample.mkdir(parents=True, exist_ok=True)
 
 for i, view in enumerate(views):
-    cv2.imwrite(temp_out_path / f"view_elev{view[0]}_azim{view[1]}.png", images[i])
+    cv2.imwrite(temp_path_sample / f"view_elev{view[0]}_azim{view[1]}.png", images[i])
 
 # %% [markdown]
 # ## Masks
@@ -131,7 +131,7 @@ nb_utils.plot_image_grid(
 )
 
 for i, view in enumerate(views):
-    cv2.imwrite(temp_out_path / f"mask_elev{view[0]}_azim{view[1]}.png", masks[i])
+    cv2.imwrite(temp_path_sample / f"mask_elev{view[0]}_azim{view[1]}.png", masks[i])
 
 # %%
 # roundtrip: back projection of ground truth masks to mesh vertex labels
