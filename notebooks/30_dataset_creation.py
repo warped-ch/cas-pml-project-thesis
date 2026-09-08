@@ -149,17 +149,21 @@ def split_stratified(
         df_subset = df.copy()
 
     # First Split: Separate Test from the rest (Train + Valid)
-    train_val_df, test_df = train_test_split(
-        df_subset,
-        test_size=test_size,
-        stratify=df_subset[stratify_col],
-        random_state=random_state,
-    )
+    if test_size > 0:
+        train_val_df, test_df = train_test_split(
+            df_subset,
+            test_size=test_size,
+            stratify=df_subset[stratify_col],
+            random_state=random_state,
+        )
+        # Adjust val_size relative to the remaining data
+        adjusted_val_size = val_size / (1 - test_size)
+    else:
+        train_val_df = df_subset
+        test_df = pd.DataFrame(columns=df_subset.columns)
+        adjusted_val_size = val_size
 
     # Second Split: Separate Train and Val
-    # Ratio = 0.15 / (1 - 0.15) = 0.15 / 0.85 ≈ 0.176
-    adjusted_val_size = val_size / (1 - test_size)
-
     train_df, val_df = train_test_split(
         train_val_df,
         test_size=adjusted_val_size,
@@ -175,15 +179,19 @@ def split_stratified(
 
 
 # %%
-unique_samples = df_eda["id_sample"].unique()
-print(f"unique_samples: {len(unique_samples)}")
+# separate the pools based on official_split train/test
+df_train_pool = df_eda[df_eda["official_split"] == "train"].copy()
+df_test_pool = df_eda[df_eda["official_split"] == "test"].copy()
+print(f"df_train_pool: {len(df_train_pool)}")
+print(f"df_test_pool: {len(df_test_pool)}")
 
-df_remaining = df_eda.copy()
 split_sample_ids = {
     "train": [],
     "valid": [],
-    "test": [],
+    "test": df_test_pool["id_sample"].tolist(),  # test is strictly official test
 }
+
+df_remaining = df_train_pool.copy()
 
 # missing_teeth: []
 # add all samples where all teeth are present to train set (rare samples)
@@ -199,7 +207,7 @@ split_sample_ids["train"] += sample_ids_all_teeth.to_list()
 mask_has_model_base = df_remaining["has_model_base"] == True
 sample_ids_no_base = df_remaining.loc[~mask_has_model_base, "id_sample"].to_list()
 print(f"sample_ids_no_base: {len(sample_ids_no_base)}")
-train_ids, valid_ids, test_ids = split_stratified(df_remaining, sample_ids_no_base)
+train_ids, valid_ids, test_ids = split_stratified(df_remaining, sample_ids_no_base, test_size=0)
 print(
     f"train_ids: {len(train_ids)}, valid_ids: {len(valid_ids)}, test_ids: {len(test_ids)}"
 )
@@ -210,7 +218,7 @@ split_sample_ids["valid"].extend(valid_ids)
 split_sample_ids["test"].extend(test_ids)
 
 # split remaining dataframe
-train_ids, valid_ids, test_ids = split_stratified(df_remaining)
+train_ids, valid_ids, test_ids = split_stratified(df_remaining, test_size=0)
 print(
     f"train_ids: {len(train_ids)}, valid_ids: {len(valid_ids)}, test_ids: {len(test_ids)}"
 )
@@ -269,7 +277,7 @@ def export_split(view, path):
     print(f"exporting dataset split: {path}")
     view.export(
         dataset_type=fo.types.COCODetectionDataset,
-        classes=view.default_classes, # make sure "categories" contains the superset of classes (avoid rf-detr eval crashes)
+        classes=view.default_classes,  # make sure "categories" contains the superset of classes (avoid rf-detr eval crashes)
         export_dir=str(path),
         labels_path="_annotations.coco.json",
         data_path=str(path),
