@@ -86,7 +86,7 @@ temp_out_path = dataset_path_3d.parent / "temp" / Path(obj_file).stem
 print(f"temp_out_path={temp_out_path}")
 temp_out_path.mkdir(parents=True, exist_ok=True)
 
-mesh, vertex_labels = ip.run_inference(obj_file)
+mesh, vertex_labels, instances = ip.run_inference(obj_file)
 for i, det in enumerate(ip.detections):
     cv2.imwrite(temp_out_path / f"image_{i}.png", det.metadata["source_image"])
 for i, mask in enumerate(ip.masks):

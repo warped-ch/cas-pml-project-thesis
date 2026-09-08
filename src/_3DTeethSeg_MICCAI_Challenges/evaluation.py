@@ -1,14 +1,15 @@
-import glob
-import math
-import pickle
-from pathlib import Path
+#import glob
+#import math
+#import pickle
+#from pathlib import Path
 import numpy as np
 import json
 from sklearn.metrics import f1_score
 import traceback
 import scipy.spatial.distance as compute_dist_matrix
 from scipy.optimize import linear_sum_assignment
-from jsonloader import load_predictions_json
+#from jsonloader import load_predictions_json
+
 
 def compute_tooth_size(points, centroid):
     size = np.sqrt(np.sum((centroid - points) ** 2, axis=0))
@@ -186,53 +187,52 @@ def get_teeth_vertices(mesh, labels_path):
     return teeth_list, teeth_centers
 
 
-if __name__ == "__main__":
-    pred_dir = '/input'
-    print(glob.glob("/input/*"))
-    with open('ground_truth_private_testset.pkl', 'rb') as fp:
-        gt_data = pickle.load(fp)
+# if __name__ == "__main__":
+#     pred_dir = '/input'
+#     print(glob.glob("/input/*"))
+#     with open('ground_truth_private_testset.pkl', 'rb') as fp:
+#         gt_data = pickle.load(fp)
 
-    print("SUCCESS: Loading ground-truth successfully")
-    print()
-    print("Try to load predictions file")
-    predictions_dict = load_predictions_json(Path('/input/predictions.json'))
-    print("SUCCESS: loading predictions successfully")
-    TLA, TSA, TIR = [], [], []
+#     print("SUCCESS: Loading ground-truth successfully")
+#     print()
+#     print("Try to load predictions file")
+#     predictions_dict = load_predictions_json(Path('/input/predictions.json'))
+#     print("SUCCESS: loading predictions successfully")
+#     TLA, TSA, TIR = [], [], []
 
-    for filename, gt_label_dict in gt_data.items():
-        try:
-            job_pk = predictions_dict[filename]
-            with open('/input/' + job_pk + '/output/dental-labels.json') as f:
-                pred_label_dict = json.load(f)
+#     for filename, gt_label_dict in gt_data.items():
+#         try:
+#             job_pk = predictions_dict[filename]
+#             with open('/input/' + job_pk + '/output/dental-labels.json') as f:
+#                 pred_label_dict = json.load(f)
 
-        except:
-            print('Cannot load dental-labels.json for ', job_pk)
-            TLA.append(0)
-            TSA.append(0)
-            TIR.append(0)
-            continue
+#         except:
+#             print('Cannot load dental-labels.json for ', job_pk)
+#             TLA.append(0)
+#             TSA.append(0)
+#             TIR.append(0)
+#             continue
 
-        jaw_TLA, jaw_TSA, jaw_TIR = calculate_metrics(gt_label_dict, pred_label_dict)
-        TLA.append(math.exp(-jaw_TLA))
-        TSA.append(jaw_TSA)
-        TIR.append(jaw_TIR)
-        if len(TIR) % 20 == 0:
-            print(str(len(TIR)), '/', str(len(gt_data)))
+#         jaw_TLA, jaw_TSA, jaw_TIR = calculate_metrics(gt_label_dict, pred_label_dict)
+#         TLA.append(math.exp(-jaw_TLA))
+#         TSA.append(jaw_TSA)
+#         TIR.append(jaw_TIR)
+#         if len(TIR) % 20 == 0:
+#             print(str(len(TIR)), '/', str(len(gt_data)))
 
-    score = (np.mean(TSA) + np.mean(TLA) + np.mean(TIR))/3
-    print("TSA : {} +- {}".format(np.mean(TSA), np.std(TSA)))
-    print("TLA : {} +- {}".format(np.mean(TLA), np.std(TLA)))
-    print("TIR : {} +- {}".format(np.mean(TIR), np.std(TIR)))
-    print(" score : ", score)
+#     score = (np.mean(TSA) + np.mean(TLA) + np.mean(TIR))/3
+#     print("TSA : {} +- {}".format(np.mean(TSA), np.std(TSA)))
+#     print("TLA : {} +- {}".format(np.mean(TLA), np.std(TLA)))
+#     print("TIR : {} +- {}".format(np.mean(TIR), np.std(TIR)))
+#     print(" score : ", score)
 
-    # export metrics to /output/metrics.json
-    score_dict = {
-        "global": score,
-        "TSA": np.mean(TSA),
-        "TLA": np.mean(TLA),
-        "TIR": np.mean(TIR)
-    }
+#     # export metrics to /output/metrics.json
+#     score_dict = {
+#         "global": score,
+#         "TSA": np.mean(TSA),
+#         "TLA": np.mean(TLA),
+#         "TIR": np.mean(TIR)
+#     }
 
-    with open('/output/metrics.json', 'w') as fp:
-        json.dump(score_dict, fp)
-
+#     with open('/output/metrics.json', 'w') as fp:
+#         json.dump(score_dict, fp)
