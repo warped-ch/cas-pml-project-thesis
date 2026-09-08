@@ -147,6 +147,30 @@ plt.show()
 df.groupby("jaw")["num_tooth_vertex_labels"].describe()
 
 # %%
+# check for any missing teeth by jaw
+
+df_any_missing_teeth = df.assign(
+    any_missing_teeth=df["missing_teeth"].apply(
+        lambda x: (isinstance(x, list) and len(x) > 0)
+    )
+)
+
+plt.figure(figsize=(12, 6))
+sns.set_style("whitegrid")
+ax = sns.countplot(data=df_any_missing_teeth, x="any_missing_teeth", hue="jaw")
+for container in ax.containers:
+    ax.bar_label(container)
+
+plt.xlabel("Status")
+plt.ylabel("Number of Scans")
+plt.title("Any Missing Teeth")
+plt.show()
+
+print(df_any_missing_teeth.groupby(["jaw", "any_missing_teeth"]).size().unstack(fill_value=0))
+
+# %%
+# check for individual missing teeth by jaw
+
 # filter out rows where 'missing_teeth' is NaN/None
 df_missing_teeth = df[df["missing_teeth"].notna()].copy()
 # explode the list so each missing tooth gets its own row
@@ -158,7 +182,11 @@ df_missing_teeth = df_missing_teeth.reset_index(drop=True)
 total_jaws = df.groupby("jaw").size().to_dict()
 print(f"total_jaws={total_jaws}")
 # count occurrences of each missing tooth
-df_missing_teeth_counts = df_missing_teeth.groupby(["jaw", "missing_teeth"]).size().reset_index(name="abs_count")
+df_missing_teeth_counts = (
+    df_missing_teeth.groupby(["jaw", "missing_teeth"])
+    .size()
+    .reset_index(name="abs_count")
+)
 # calculate percentage (number of patients missing this tooth / total number of patients)
 df_missing_teeth_counts["percentage"] = df_missing_teeth_counts.apply(
     lambda row: (row["abs_count"] / total_jaws[row["jaw"]]) * 100, axis=1
@@ -166,14 +194,16 @@ df_missing_teeth_counts["percentage"] = df_missing_teeth_counts.apply(
 
 plt.figure(figsize=(12, 6))
 sns.set_style("whitegrid")
-ax = sns.barplot(data=df_missing_teeth_counts, x="missing_teeth", y="percentage", hue="jaw")
+ax = sns.barplot(
+    data=df_missing_teeth_counts, x="missing_teeth", y="percentage", hue="jaw"
+)
 for container in ax.containers:
-    ax.bar_label(container, fmt='%.1f')
+    ax.bar_label(container, fmt="%.1f")
 ax.set(ylim=(0, 100))
 plt.xticks(rotation=45)
 plt.xlabel("FDI tooth number")
 plt.ylabel("Percentage of missing teeth (%)")
-plt.title("Missing Teeth (relative to jaw)")
+plt.title("Missing Teeth Rate")
 plt.show()
 
 df.groupby("jaw")["missing_teeth"].describe()
@@ -189,7 +219,9 @@ for container in ax.containers:
     ax.bar_label(container)
 plt.show()
 
-g = sns.catplot(data=df, kind="count", x="has_model_base", hue="jaw", col="official_split")
+g = sns.catplot(
+    data=df, kind="count", x="has_model_base", hue="jaw", col="official_split"
+)
 for ax in g.axes.flat:
     for container in ax.containers:
         ax.bar_label(container)
