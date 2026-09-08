@@ -9,7 +9,7 @@ class PostProcessing:
     def __init__(
         self, config: dict[str, Any], mesh_verts: np.ndarray, mesh_faces: np.ndarray
     ):
-        self.mesh = trimesh.Trimesh(vertices=mesh_verts, faces=mesh_faces)
+        self.mesh = trimesh.Trimesh(vertices=mesh_verts, faces=mesh_faces, process=False)
         self.edges_unique = self.mesh.edges_unique
 
         self.background_value = config["2d_projection"]["background_value"]
