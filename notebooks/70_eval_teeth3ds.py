@@ -99,7 +99,12 @@ for sample_id in tqdm(test_split_sample_ids, desc="Running 3DTeethSeg evaluation
     }
     predictions.append(pred_label_dict)
 
-metrics_dict = {"model": str(best_model_chkpt_path), "predictions": predictions}
+metrics_dict = {
+    "model_chkpt_path": str(best_model_chkpt_path.relative_to(root_path)),
+    "dataset_path_2d": str(dataset_path_2d.relative_to(root_path)),
+    "dataset_path_3d": str(dataset_path_3d.relative_to(root_path)),
+    "predictions": predictions,
+}
 
 metrics_file = out_path / f"3DTeethSeg_eval_{timestamp}.json"
 print(f"metrics_file={metrics_file}")
