@@ -61,6 +61,11 @@ out_path.mkdir(parents=True, exist_ok=True)
 # %%
 # run inference pipeline on test split and save metrics
 
+# best_model_chkpt_path = root_path / config.get("output_rf_detr_train") / "20260828_064008/Teeth2D_upper" / "checkpoint_best_ema.pth"
+# print(f"best_model_chkpt_path={best_model_chkpt_path}")
+# dataset_path_2d = root_path / config.get("data_path") / "Teeth2D_upper"
+# print(f"dataset_path_2d={dataset_path_2d}")
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 ip = inference_pipeline.InferencePipeline(
