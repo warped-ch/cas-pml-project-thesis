@@ -49,9 +49,9 @@ print(f"dataset_path_3d={dataset_path_3d}")
 best_model_chkpt_path = root_path / config.get("best_model_chkpt_path")
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
-temp_out_path = dataset_path_3d.parent / "temp"
-print(f"temp_out_path={temp_out_path}")
-temp_out_path.mkdir(parents=True, exist_ok=True)
+out_path = root_path / config.get("output_path")
+print(f"out_path={out_path}")
+out_path.mkdir(parents=True, exist_ok=True)
 
 # %% [markdown]
 # ## Evaluate using the "3DTeethSeg Challenge MICCAI 2022" metrics
@@ -99,23 +99,25 @@ for sample_id in tqdm(test_split_sample_ids, desc="Running 3DTeethSeg evaluation
     }
     predictions.append(pred_label_dict)
 
-metrics_file = temp_out_path / f"3DTeethSeg_eval_{timestamp}.json"
+metrics_dict = {"model": str(best_model_chkpt_path), "predictions": predictions}
+
+metrics_file = out_path / f"3DTeethSeg_eval_{timestamp}.json"
 print(f"metrics_file={metrics_file}")
 with open(metrics_file, "w") as f:
-    json.dump(predictions, f)
+    json.dump(metrics_dict, f)
 
 # %%
 # read back the saved metrics and run 3DTeethSeg evaluation
 
-metrics_file = temp_out_path / "3DTeethSeg_eval_20260904_200210.json"
+# metrics_file = out_path / "3DTeethSeg_eval_20260908_120309.json"
 with open(metrics_file, "r") as f:
-    predictions = json.load(f)
+    metrics_dict = json.load(f)
 
 obj_files = list(dataset_path_3d.rglob("*.obj"))
 gt_json_files = [f.with_suffix(".json") for f in obj_files]
 
 TLA, TSA, TIR = [], [], []
-for pred_label_dict in tqdm(predictions, desc="Evaluating predictions"):
+for pred_label_dict in tqdm(metrics_dict["predictions"], desc="Evaluating predictions"):
     try:
         id_patient = pred_label_dict.get("id_patient")
         jaw = pred_label_dict.get("jaw")
@@ -136,18 +138,22 @@ for pred_label_dict in tqdm(predictions, desc="Evaluating predictions"):
         pred_label_dict["labels"] = np.array(pred_label_dict["labels"])
         pred_label_dict["instances"] = np.array(pred_label_dict["instances"])
 
-        jaw_TLA, jaw_TSA, jaw_TIR = evaluation.calculate_metrics(gt_label_dict, pred_label_dict)
+        jaw_TLA, jaw_TSA, jaw_TIR = evaluation.calculate_metrics(
+            gt_label_dict, pred_label_dict
+        )
         TLA.append(math.exp(-jaw_TLA))
         TSA.append(jaw_TSA)
         TIR.append(jaw_TIR)
     except Exception as e:
-        print(f"💥 exception caught while processing prediction {pred_label_dict}: {str(e)}")
+        print(
+            f"💥 exception caught while processing prediction {pred_label_dict}: {str(e)}"
+        )
         TLA.append(0)
         TSA.append(0)
         TIR.append(0)
         continue
 
-score = (np.mean(TSA) + np.mean(TLA) + np.mean(TIR))/3
+score = (np.mean(TSA) + np.mean(TLA) + np.mean(TIR)) / 3
 print("TSA : {} +- {}".format(np.mean(TSA), np.std(TSA)))
 print("TLA : {} +- {}".format(np.mean(TLA), np.std(TLA)))
 print("TIR : {} +- {}".format(np.mean(TIR), np.std(TIR)))
@@ -158,9 +164,9 @@ score_dict = {
     "global": score,
     "TSA": np.mean(TSA),
     "TLA": np.mean(TLA),
-    "TIR": np.mean(TIR)
+    "TIR": np.mean(TIR),
 }
 
-eval_metrics_file = temp_out_path / f"{metrics_file.stem}_results.json"
-with open(eval_metrics_file, 'w') as f:
+eval_metrics_file = metrics_file.parent / f"{metrics_file.stem}_results.json"
+with open(eval_metrics_file, "w") as f:
     json.dump(score_dict, f)
