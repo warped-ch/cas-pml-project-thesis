@@ -35,7 +35,7 @@ with open("../config/config.yaml", "r") as f:
 datasets = [
     "Teeth2D_lower",
     "Teeth2D_upper",
-    #"Teeth2D",
+    "Teeth2D",
 ]
 dataset_paths = [(root_path / "data" / ds) for ds in datasets]
 
@@ -67,6 +67,7 @@ for dataset_path in dataset_paths:
         batch_size=8,
         grad_accum_steps=2,
         lr=1e-4,
+        aug_config={},  # disable augmentation (no horizontal flip)
         save_dataset_grids=True,
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,

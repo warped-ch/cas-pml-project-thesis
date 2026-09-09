@@ -1,5 +1,5 @@
 # path definitions are relative to repository root
-best_model_chkpt_path: "output/rf_detr_train/20260828_064008/Teeth2D/checkpoint_best_ema.pth"
+best_model_chkpt_path: "output/rf_detr_train/20260909_191810/Teeth2D/checkpoint_best_ema.pth"
 data_path: "data"
 data_path_projections: "data/Projections"
 dataset_path_2d: "data/Teeth2D"

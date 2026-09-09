@@ -8,6 +8,36 @@
 
 ```
 
+## rf-detr/20260909_191810
+
+[20260909_191810](../output/rf_detr_train/20260909_191810)
+
+- disable augmentation
+- consider official train/test split
+- train on the following custom datasets
+  - Teeth2D_lower
+  - Teeth2D_upper
+  - Teeth2D
+
+```py
+dataset_dir=str(dataset_path),
+output_dir=output_dir,
+epochs=200,
+batch_size=8,
+grad_accum_steps=2,
+lr=1e-4,
+aug_config={},  # disable augmentation (no horizontal flip)
+save_dataset_grids=True,
+# TODO: speed up training by specifying "num_queries" according to classes in dataset?
+multi_scale=False,
+eval_interval=5,
+early_stopping=True,
+early_stopping_patience=10,  # Wait 10 epochs before stopping
+early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+pin_memory=True,
+progress_bar="tqdm",
+```
+
 ## rf-detr/20260909_035324
 
 [20260909_035324](../output/rf_detr_train/20260909_035324)
