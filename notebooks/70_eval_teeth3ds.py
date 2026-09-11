@@ -61,7 +61,7 @@ out_path.mkdir(parents=True, exist_ok=True)
 # %%
 # run inference pipeline on test split and save metrics
 
-# best_model_chkpt_path = root_path / config.get("output_rf_detr_train") / "20260828_064008/Teeth2D_upper" / "checkpoint_best_ema.pth"
+# best_model_chkpt_path = root_path / config.get("output_rf_detr_train") / "20260909_191810/Teeth2D_upper" / "checkpoint_best_ema.pth"
 # print(f"best_model_chkpt_path={best_model_chkpt_path}")
 # dataset_path_2d = root_path / config.get("data_path") / "Teeth2D_upper"
 # print(f"dataset_path_2d={dataset_path_2d}")
@@ -124,7 +124,6 @@ with open(metrics_file, "r") as f:
     metrics_dict = json.load(f)
 
 obj_files = list(dataset_path_3d.rglob("*.obj"))
-gt_json_files = [f.with_suffix(".json") for f in obj_files]
 
 TLA, TSA, TIR = [], [], []
 for pred_label_dict in tqdm(metrics_dict["predictions"], desc="Evaluating predictions"):
@@ -175,6 +174,9 @@ score_dict = {
     "TSA": np.mean(TSA),
     "TLA": np.mean(TLA),
     "TIR": np.mean(TIR),
+    "model_chkpt_path": str(best_model_chkpt_path.relative_to(root_path)),
+    "dataset_path_2d": str(dataset_path_2d.relative_to(root_path)),
+    "dataset_path_3d": str(dataset_path_3d.relative_to(root_path)),
 }
 
 eval_metrics_file = metrics_file.parent / f"{metrics_file.stem}_results.json"
