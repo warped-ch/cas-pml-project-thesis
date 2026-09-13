@@ -65,16 +65,17 @@ for dataset_path in dataset_paths:
         output_dir=output_dir,
         epochs=200,
         batch_size=8,
-        grad_accum_steps=2,
+        grad_accum_steps=1,
         lr=1e-4,
         aug_config={},  # disable augmentation (no horizontal flip)
         save_dataset_grids=True,
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
-        eval_interval=5,
+        #eval_interval=5,
         early_stopping=True,
         early_stopping_patience=10,  # Wait 10 epochs before stopping
         early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+        compute_val_loss=True,
         pin_memory=True,
         progress_bar="tqdm",
     )
