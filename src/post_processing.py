@@ -110,7 +110,7 @@ class PostProcessing:
 
     def fill_holes(self, vertex_labels: np.ndarray):
         """
-        Fill holes (background segments that are fully enclosed by a tooth).
+        Fill holes (background segments or tooth fragments that are fully enclosed by a tooth label).
         """
         filled_labels = vertex_labels.copy()
 
@@ -142,9 +142,8 @@ class PostProcessing:
             for i, component in enumerate(other_components):
                 if i == outside_component_idx:
                     continue
-                # only fill true holes (background_value)
                 component_list = list(component)
-                if np.all(vertex_labels[component_list] == self.background_value):
-                    filled_labels[component_list] = tooth_id
+                filled_labels[component_list] = tooth_id
+                    
 
         return filled_labels
