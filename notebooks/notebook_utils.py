@@ -7,6 +7,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
+import seaborn as sns
 import supervision as sv
 import yaml
 from pytorch3d.structures import Meshes
@@ -73,6 +74,13 @@ def convert_colors_sv(colors: list[str]) -> sv.ColorPalette:
     # https://supervision.roboflow.com/draw/color/#colorpalette
     colors_bgr = [hex_rgb_to_hex_bgr(c) for c in colors]
     return sv.ColorPalette.from_hex(colors_bgr)
+
+
+def plot_colors_fdi(colors: list[str], class_ids) -> None:
+    sns.palplot(colors)
+    plt.title("FDI class_id color labels", fontsize=16, pad=20)
+    plt.xticks(range(len(colors)), class_ids)
+    plt.show()
 
 
 def plot_histogram_grid(

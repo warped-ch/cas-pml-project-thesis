@@ -18,10 +18,8 @@ import sys
 from pathlib import Path
 
 import cv2
-import matplotlib.pyplot as plt
 import notebook_utils as nb_utils
 import numpy as np
-import seaborn as sns
 import torch
 from matplotlib.colors import ListedColormap
 
@@ -45,15 +43,10 @@ print(f"temp_path={temp_path}")
 # %%
 colors = nb_utils.get_colors()
 print(f"colors: {len(colors)}, {colors}")
-
-class_ids = config["class_ids"]
-sns.palplot(colors)
-plt.title("FDI class_id color labels", fontsize=16, pad=20)
-plt.xticks(range(len(colors)), class_ids)
-plt.show()
-
 colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
 print(f"colors_pv: {len(colors_pv)}, {colors_pv}")
+
+nb_utils.plot_colors_fdi(colors, config["class_ids"])
 
 # %%
 # load a mesh sample

@@ -20,10 +20,8 @@ import sys
 from pathlib import Path
 
 import cv2
-import matplotlib.pyplot as plt
 import notebook_utils as nb_utils
 import numpy as np
-import seaborn as sns
 import supervision as sv
 import torch
 
@@ -58,17 +56,12 @@ print(f"model.model_config.resolution: {ip.model.model_config.resolution}")
 # %%
 colors = nb_utils.get_colors()
 print(f"colors: {len(colors)}, {colors}")
-
-class_ids = config["class_ids"]
-sns.palplot(colors)
-plt.title("FDI class_id color labels", fontsize=16, pad=20)
-plt.xticks(range(len(colors)), class_ids)
-plt.show()
-
 colors_pv = nb_utils.convert_colors_pv(colors, config["class_ids"])
 print(f"colors_pv: {len(colors_pv)}, {colors_pv}")
 colors_sv = nb_utils.convert_colors_sv(colors)
 print(f"colors_sv: {len(colors_sv)}, {colors_sv}")
+
+nb_utils.plot_colors_fdi(colors, config["class_ids"])
 
 # %%
 # misprediction on 33, 34 / post processing leaves 33 completely enclosed by 34
