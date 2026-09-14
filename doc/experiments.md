@@ -8,9 +8,9 @@
 
 ```
 
-## rf-detr/20260912_004006
+## rf-detr/20260912_010327
 
-[20260912_004006](../output/rf_detr_train/20260912_004006)
+[20260912_010327](../output/rf_detr_train/20260912_010327)
 
 - lowered grad_accum_steps from 2 to 1
 - eval_interval to default: 1
@@ -27,10 +27,11 @@ aug_config={},  # disable augmentation (no horizontal flip)
 save_dataset_grids=True,
 # TODO: speed up training by specifying "num_queries" according to classes in dataset?
 multi_scale=False,
-eval_interval=5,
+#eval_interval=5,
 early_stopping=True,
 early_stopping_patience=10,  # Wait 10 epochs before stopping
 early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement
+compute_val_loss=True,
 pin_memory=True,
 progress_bar="tqdm",
 ```
