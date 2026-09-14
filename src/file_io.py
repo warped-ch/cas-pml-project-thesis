@@ -56,12 +56,13 @@ def load_vertex_labels(
 
     return vertex_labels
 
+
 def read_random_line_from_file(file_path: str) -> str:
     """
     Reads a single random line from a file.
 
     https://stackoverflow.com/a/3540315
-    
+
     Args:
         file_path (str): The path to the file.
 
