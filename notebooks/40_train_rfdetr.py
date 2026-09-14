@@ -69,7 +69,6 @@ for dataset_path in dataset_paths:
         lr=1e-4,
         aug_config={},  # disable augmentation (no horizontal flip)
         save_dataset_grids=True,
-        # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
         # eval_interval=5,
         early_stopping=True,

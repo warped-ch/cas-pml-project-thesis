@@ -41,13 +41,6 @@ print(f"dataset_path_3d={dataset_path_3d}")
 
 
 # %%
-# TODO: unit tests
-# print(f"has_model_base: {mesh_utils.has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\lower\DNSRP767\DNSRP767_lower.obj"))}")
-# print(f"has_model_base: {mesh_utils.has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\upper\DNSRP767\DNSRP767_upper.obj"))}")
-# print(f"has_model_base: {mesh_utils.has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\lower\018XZVD6\018XZVD6_lower.obj"))}")
-# print(f"has_model_base: {mesh_utils.has_model_base(Path(r"C:\Development\cas_pml\project_thesis\data\Teeth3DS+\raw\upper\018XZVD6\018XZVD6_upper.obj"))}")
-
-# %%
 def load_sample(
     obj_file: list[str], official_train_split: list[str], official_test_split: list[str]
 ):

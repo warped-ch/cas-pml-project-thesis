@@ -254,6 +254,5 @@ class ViewProjector:
         # so vertices aren't labeled as background just because they were invisible in some views.
         # votes[:, self.background_value] = 0
 
-        # TODO, distinguish background and vertices without votes, new class id "unknown"?
         vertex_labels = torch.argmax(votes, dim=1)
         return vertex_labels.cpu().numpy().astype(np.uint8)

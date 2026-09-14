@@ -36,8 +36,6 @@ class InferencePipeline:
         self.mask = None
         self.vertex_labels_raw = None
 
-    # TODO: "class_1" instead of "class_0"
-    # TODO: hack?
     def get_mask_value(self, class_id: int) -> int:
         class_name = self.model.class_names[class_id]
         mask_value = int(class_name.split("_")[1])
