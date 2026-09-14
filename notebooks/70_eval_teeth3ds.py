@@ -19,18 +19,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import notebook_utils as nb_utils
 import numpy as np
 import torch
 import trimesh
-import yaml
 from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
 from src import inference_pipeline
 from src._3DTeethSeg_MICCAI_Challenges import evaluation
-
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -38,18 +35,17 @@ print(f"Using device: {device}")
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
 
-dataset_path_2d = root_path / config.get("dataset_path_2d")
+dataset_path_2d = nb_utils.resolve_config_path("dataset_path_2d", config)
 print(f"dataset_path_2d={dataset_path_2d}")
-dataset_path_3d = root_path / config.get("dataset_path_3d")
+dataset_path_3d = nb_utils.resolve_config_path("dataset_path_3d", config)
 print(f"dataset_path_3d={dataset_path_3d}")
 
-best_model_chkpt_path = root_path / config.get("best_model_chkpt_path")
+best_model_chkpt_path = nb_utils.resolve_config_path("best_model_chkpt_path", config)
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
-out_path = root_path / config.get("output_path")
+out_path = nb_utils.resolve_config_path("output_path", config)
 print(f"out_path={out_path}")
 out_path.mkdir(parents=True, exist_ok=True)
 
@@ -61,9 +57,9 @@ out_path.mkdir(parents=True, exist_ok=True)
 # %%
 # run inference pipeline on test split and save metrics
 
-# best_model_chkpt_path = root_path / config.get("output_rf_detr_train") / "20260912_010327/Teeth2D_upper" / "checkpoint_best_ema.pth"
+# best_model_chkpt_path = nb_utils.resolve_config_path("output_rf_detr_train", config) / "20260912_010327/Teeth2D_upper" / "checkpoint_best_ema.pth"
 # print(f"best_model_chkpt_path={best_model_chkpt_path}")
-# dataset_path_2d = root_path / config.get("data_path") / "Teeth2D_upper"
+# dataset_path_2d = nb_utils.resolve_config_path("data_path", config) / "Teeth2D_upper"
 # print(f"dataset_path_2d={dataset_path_2d}")
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -105,9 +101,9 @@ for sample_id in tqdm(test_split_sample_ids, desc="Running 3DTeethSeg evaluation
     predictions.append(pred_label_dict)
 
 metrics_dict = {
-    "model_chkpt_path": str(best_model_chkpt_path.relative_to(root_path)),
-    "dataset_path_2d": str(dataset_path_2d.relative_to(root_path)),
-    "dataset_path_3d": str(dataset_path_3d.relative_to(root_path)),
+    "model_chkpt_path": str(best_model_chkpt_path.relative_to(nb_utils.PROJECT_ROOT)),
+    "dataset_path_2d": str(dataset_path_2d.relative_to(nb_utils.PROJECT_ROOT)),
+    "dataset_path_3d": str(dataset_path_3d.relative_to(nb_utils.PROJECT_ROOT)),
     "predictions": predictions,
 }
 
@@ -174,9 +170,9 @@ score_dict = {
     "TSA": np.mean(TSA),
     "TLA": np.mean(TLA),
     "TIR": np.mean(TIR),
-    "model_chkpt_path": str(best_model_chkpt_path.relative_to(root_path)),
-    "dataset_path_2d": str(dataset_path_2d.relative_to(root_path)),
-    "dataset_path_3d": str(dataset_path_3d.relative_to(root_path)),
+    "model_chkpt_path": str(best_model_chkpt_path.relative_to(nb_utils.PROJECT_ROOT)),
+    "dataset_path_2d": str(dataset_path_2d.relative_to(nb_utils.PROJECT_ROOT)),
+    "dataset_path_3d": str(dataset_path_3d.relative_to(nb_utils.PROJECT_ROOT)),
 }
 
 eval_metrics_file = metrics_file.parent / f"{metrics_file.stem}_results.json"

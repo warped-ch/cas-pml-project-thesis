@@ -17,7 +17,7 @@
 #
 # - Create `Teeth2D` fiftyone dataset from the multi-view projection images and masks.
 # - Update Teeth2D metadata sample tags.
-# - Create custom train/valid/test splits.
+# - Create train/valid/test splits.
 # - Export `Teeth2D` dataset(s) in COCO format.
 
 # %%
@@ -27,34 +27,33 @@ import sys
 from pathlib import Path
 
 import fiftyone as fo
+import notebook_utils as nb_utils
 import pandas as pd
-import yaml
 from sklearn.model_selection import train_test_split
 from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
 from src.teeth2d_dataset_importer import Teeth2DDatasetImporter
 
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
-
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
 
-dataset_path_2d = root_path / config.get("dataset_path_2d")
+dataset_path_2d = nb_utils.resolve_config_path("dataset_path_2d", config)
 dataset_path_2d.mkdir(parents=True, exist_ok=True)
 print(f"dataset_path_2d={dataset_path_2d}")
 
-projections_path = root_path / config["data_path_projections"]
+projections_path = nb_utils.resolve_config_path("data_path_projections", config)
 projections_path.mkdir(parents=True, exist_ok=True)
 print(f"projections_path={projections_path}")
 
-df_eda = pd.read_csv(
-    root_path / config["dataframe_eda"], converters={"missing_teeth": ast.literal_eval}
-)
+# %%
+# load EDA dataframe
+
+df_eda_path = nb_utils.resolve_config_path("dataframe_eda", config)
+print(f"df_eda_path={df_eda_path}")
+df_eda = pd.read_csv(df_eda_path, converters={"missing_teeth": ast.literal_eval})
 
 # %%
 dataset_importer = Teeth2DDatasetImporter(
@@ -207,7 +206,9 @@ split_sample_ids["train"] += sample_ids_all_teeth.to_list()
 mask_has_model_base = df_remaining["has_model_base"] == True
 sample_ids_no_base = df_remaining.loc[~mask_has_model_base, "id_sample"].to_list()
 print(f"sample_ids_no_base: {len(sample_ids_no_base)}")
-train_ids, valid_ids, test_ids = split_stratified(df_remaining, sample_ids_no_base, test_size=0)
+train_ids, valid_ids, test_ids = split_stratified(
+    df_remaining, sample_ids_no_base, test_size=0
+)
 print(
     f"train_ids: {len(train_ids)}, valid_ids: {len(valid_ids)}, test_ids: {len(test_ids)}"
 )

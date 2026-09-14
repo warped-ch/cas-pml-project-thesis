@@ -21,24 +21,23 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import notebook_utils as nb_utils
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import yaml
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
 sys.path.append(str(Path.cwd().parent))
 from src import fdi_utils, mesh_utils, teeth3ds_utils
 
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
-
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
+
+dataset_path_3d = nb_utils.resolve_config_path("dataset_path_3d", config)
+print(f"dataset_path_3d={dataset_path_3d}")
 
 
 # %%
@@ -92,15 +91,11 @@ def load_sample(
 # %%
 # load the data
 
-dataset_path = root_path / config.get("dataset_path_3d")
-print(f"dataset_path={dataset_path}")
-assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
-
 official_train_split, official_test_split = teeth3ds_utils.load_official_splits(
-    config, root_path
+    dataset_path_3d
 )
 
-obj_files = list(dataset_path.rglob("*.obj"))
+obj_files = list(dataset_path_3d.rglob("*.obj"))
 
 data = Parallel(n_jobs=-1)(
     delayed(load_sample)(obj, official_train_split, official_test_split)
@@ -120,7 +115,10 @@ df = pd.DataFrame(data)
 
 # automatic type converion (automatically converts None/NaN into pd.NA for integer columns)
 df = df.convert_dtypes()
-df.to_csv(str(root_path / config.get("dataframe_eda")), index=False)
+
+df_eda_path = nb_utils.resolve_config_path("dataframe_eda", config)
+print(f"df_eda_path={df_eda_path}")
+df.to_csv(str(df_eda_path), index=False)
 
 df.info()
 df.head()

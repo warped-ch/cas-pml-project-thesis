@@ -17,19 +17,17 @@
 
 # %%
 from datetime import datetime
-from pathlib import Path
 
-import yaml
+import notebook_utils as nb_utils
 from rfdetr import RFDETRSegMedium
-
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
 
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
+
+data_path = nb_utils.resolve_config_path("data_path", config)
+print(f"data_path={data_path}")
 
 # %%
 datasets = [
@@ -37,7 +35,7 @@ datasets = [
     "Teeth2D_upper",
     "Teeth2D",
 ]
-dataset_paths = [(root_path / "data" / ds) for ds in datasets]
+dataset_paths = [(data_path / ds) for ds in datasets]
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -46,7 +44,9 @@ for dataset_path in dataset_paths:
     model = RFDETRSegMedium()
 
     output_dir = (
-        root_path / config["output_rf_detr_train"] / timestamp / dataset_path.stem
+        nb_utils.resolve_config_path("output_rf_detr_train", config)
+        / timestamp
+        / dataset_path.stem
     )
     print(f"output_dir={output_dir}")
 
@@ -71,7 +71,7 @@ for dataset_path in dataset_paths:
         save_dataset_grids=True,
         # TODO: speed up training by specifying "num_queries" according to classes in dataset?
         multi_scale=False,
-        #eval_interval=5,
+        # eval_interval=5,
         early_stopping=True,
         early_stopping_patience=10,  # Wait 10 epochs before stopping
         early_stopping_min_delta=0.005,  # Require 0.5% validation metric improvement

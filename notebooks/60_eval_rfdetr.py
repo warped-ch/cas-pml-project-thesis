@@ -16,12 +16,9 @@
 import json
 from pathlib import Path
 
+import notebook_utils as nb_utils
 import torch
-import yaml
 from rfdetr import RFDETRSegMedium
-
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -29,15 +26,15 @@ print(f"Using device: {device}")
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
 
 # %% [markdown]
 # ## Evaluate RF-DETR Teeth2D models
 
 # %%
 train_out_path = (
-    root_path / config.get("output_rf_detr_train") / "20260828_064008/Teeth2D"
+    nb_utils.resolve_config_path("output_rf_detr_train", config)
+    / "20260828_064008/Teeth2D"
 )
 print(f"train_out_path={train_out_path}")
 
@@ -50,7 +47,7 @@ if train_config_file.is_file():
     dataset_dir = Path(train_config["train_config"]["dataset_dir"])
 else:
     print("⚠️ fallback to dataset_path_2d from own config")
-    dataset_dir = root_path / config.get("dataset_path_2d")
+    dataset_dir = nb_utils.resolve_config_path("dataset_path_2d", config)
 print(f"dataset_dir={dataset_dir}")
 
 split = "test"

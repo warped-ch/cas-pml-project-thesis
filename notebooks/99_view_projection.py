@@ -23,14 +23,10 @@ import notebook_utils as nb_utils
 import numpy as np
 import seaborn as sns
 import torch
-import yaml
 from matplotlib.colors import ListedColormap
 
 sys.path.append(str(Path.cwd().parent))
 from src import file_io, view_projector
-
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -38,8 +34,13 @@ print(f"Using device: {device}")
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
+
+dataset_path_3d = nb_utils.resolve_config_path("dataset_path_3d", config)
+print(f"dataset_path_3d={dataset_path_3d}")
+
+temp_path = nb_utils.resolve_config_path("temp_path", config)
+print(f"temp_path={temp_path}")
 
 # %%
 colors = nb_utils.get_colors()
@@ -57,11 +58,7 @@ print(f"colors_pv: {len(colors_pv)}, {colors_pv}")
 # %%
 # load a mesh sample
 
-dataset_path = root_path / config["dataset_path_3d"]
-print(f"dataset_path={dataset_path}")
-assert dataset_path.is_dir(), f"'dataset_path' does not exist: {dataset_path}"
-
-obj_files = list(dataset_path.rglob("*.obj"))
+obj_files = list(dataset_path_3d.rglob("*.obj"))
 
 obj_file = random.choice(obj_files)
 print(f"obj_file={obj_file}")
@@ -99,7 +96,7 @@ nb_utils.plot_histogram_grid(
     titles=titles,
 )
 
-temp_path_sample = root_path / config.get("temp_path") / obj_file.stem
+temp_path_sample = temp_path / obj_file.stem
 print(f"temp_path_sample={temp_path_sample}")
 temp_path_sample.mkdir(parents=True, exist_ok=True)
 

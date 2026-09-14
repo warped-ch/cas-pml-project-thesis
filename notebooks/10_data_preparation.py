@@ -21,8 +21,8 @@ import sys
 from pathlib import Path
 
 import cv2
+import notebook_utils as nb_utils
 import torch
-import yaml
 from joblib import Parallel, delayed
 from torch_geometric.datasets import Teeth3DS
 from tqdm.auto import tqdm
@@ -30,17 +30,13 @@ from tqdm.auto import tqdm
 sys.path.append(str(Path.cwd().parent))
 from src import file_io, view_projector
 
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
 
 # %% [markdown]
 # ## Dataset: Teeth3DS+
@@ -49,7 +45,7 @@ with open("../config/config.yaml", "r") as f:
 # - Clean up leftovers from `3DTeethLand_challenge` split.
 
 # %%
-dataset_path_3d = root_path / config.get("dataset_path_3d")
+dataset_path_3d = nb_utils.resolve_config_path("dataset_path_3d", config)
 dataset_path_3d.mkdir(parents=True, exist_ok=True)
 print(f"dataset_path_3d={dataset_path_3d}")
 
@@ -90,7 +86,7 @@ for obj_file in obj_files:
 # - Save view and mask images.
 
 # %%
-projections_path = root_path / config["data_path_projections"]
+projections_path = nb_utils.resolve_config_path("data_path_projections", config)
 print(f"projections_path={projections_path}")
 shutil.rmtree(projections_path, ignore_errors=True)
 

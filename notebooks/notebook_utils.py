@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 from typing import Any
 
 import glasbey
@@ -7,9 +8,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 import supervision as sv
+import yaml
 from pytorch3d.structures import Meshes
 
 pv.set_jupyter_backend("trame")
+
+PROJECT_ROOT = Path.cwd().parent
+CONFIG_PATH = PROJECT_ROOT / "config" / "config.yaml"
+
+
+def load_config() -> dict[str, Any]:
+    with open(CONFIG_PATH, "r") as f:
+        return yaml.safe_load(f)
+
+
+def resolve_config_path(key: str, config: dict[str, Any]) -> Path:
+    return PROJECT_ROOT / config[key]
 
 
 def get_colors(palette: Any = "Set3") -> list[str]:

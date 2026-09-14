@@ -26,13 +26,9 @@ import numpy as np
 import seaborn as sns
 import supervision as sv
 import torch
-import yaml
 
 sys.path.append(str(Path.cwd().parent))
 from src import inference_pipeline
-
-root_path = Path.cwd().parent
-print(f"root_path={root_path}")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -40,16 +36,15 @@ print(f"Using device: {device}")
 # %%
 # load config file
 
-with open("../config/config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = nb_utils.load_config()
 
-best_model_chkpt_path = root_path / config.get("best_model_chkpt_path")
+best_model_chkpt_path = nb_utils.resolve_config_path("best_model_chkpt_path", config)
 print(f"best_model_chkpt_path={best_model_chkpt_path}")
 
-dataset_path_3d = root_path / config.get("dataset_path_3d")
+dataset_path_3d = nb_utils.resolve_config_path("dataset_path_3d", config)
 print(f"dataset_path_3d={dataset_path_3d}")
 
-temp_path = root_path / config.get("temp_path")
+temp_path = nb_utils.resolve_config_path("temp_path", config)
 print(f"temp_path={temp_path}")
 
 views = np.array(config["2d_projection"]["views"])

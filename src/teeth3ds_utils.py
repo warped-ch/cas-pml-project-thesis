@@ -1,15 +1,10 @@
-def load_official_splits(config, root_path) -> tuple[list[str], list[str]]:
+def load_official_splits(dataset_path) -> tuple[list[str], list[str]]:
     """
     Loads the official "3D Teeth Seg Challenge" train/test split:
         - train split: publicly available for training
         - test split: private test split (during challenge) for evaluation
     """
-    base_path = (
-        root_path
-        / config["dataset_path_3d"]
-        / "raw"
-        / "3DTeethSeg22_challenge_train_test_split"
-    )
+    base_path = dataset_path / "raw" / "3DTeethSeg22_challenge_train_test_split"
 
     train_files = ["public-training-set-1.txt", "public-training-set-2.txt"]
     test_files = ["private-testing-set.txt"]
