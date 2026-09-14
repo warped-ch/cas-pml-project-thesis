@@ -12,6 +12,9 @@
 #     name: python3
 # ---
 
+# %% [markdown]
+# # Testing multi-view projection roundtrip using ground-truth data
+
 # %%
 import random
 import sys

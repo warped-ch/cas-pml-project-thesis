@@ -12,6 +12,11 @@
 #     name: python3
 # ---
 
+# %% [markdown]
+# # Evaluate using the "3DTeethSeg Challenge MICCAI 2022" metrics
+#
+# - https://github.com/abenhamadou/3DTeethSeg_MICCAI_Challenges
+
 # %%
 import json
 import math
@@ -48,11 +53,6 @@ print(f"best_model_chkpt_path={best_model_chkpt_path}")
 out_path = nb_utils.resolve_config_path("output_path", config)
 print(f"out_path={out_path}")
 out_path.mkdir(parents=True, exist_ok=True)
-
-# %% [markdown]
-# ## Evaluate using the "3DTeethSeg Challenge MICCAI 2022" metrics
-#
-# - https://github.com/abenhamadou/3DTeethSeg_MICCAI_Challenges
 
 # %%
 # run inference pipeline on test split and save metrics

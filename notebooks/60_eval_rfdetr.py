@@ -12,6 +12,9 @@
 #     name: python3
 # ---
 
+# %% [markdown]
+# # Evaluate RF-DETR Teeth2D models
+
 # %%
 import json
 from pathlib import Path
@@ -27,9 +30,6 @@ print(f"Using device: {device}")
 # load config file
 
 config = nb_utils.load_config()
-
-# %% [markdown]
-# ## Evaluate RF-DETR Teeth2D models
 
 # %%
 train_out_path = (

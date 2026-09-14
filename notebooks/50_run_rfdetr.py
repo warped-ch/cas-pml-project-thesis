@@ -12,6 +12,9 @@
 #     name: python3
 # ---
 
+# %% [markdown]
+# # Run RF-DETR Teeth2D model on random test split samples
+
 # %%
 import random
 import sys
