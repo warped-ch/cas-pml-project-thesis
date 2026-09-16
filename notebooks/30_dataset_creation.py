@@ -185,47 +185,37 @@ print(f"df_train_pool: {len(df_train_pool)}")
 print(f"df_test_pool: {len(df_test_pool)}")
 
 split_sample_ids = {
-    "train": [],
+    "train": df_train_pool["id_sample"].tolist(),  # greedy train split
     "valid": [],
     "test": df_test_pool["id_sample"].tolist(),  # test is strictly official test
 }
 
-df_remaining = df_train_pool.copy()
-
 # missing_teeth: []
-# add all samples where all teeth are present to train set (rare samples)
-mask_all_teeth = df_remaining["missing_teeth"].apply(len) == 0
-sample_ids_all_teeth = df_remaining.loc[mask_all_teeth, "id_sample"]
+# add rare samples where all teeth are present to valid
+mask_all_teeth = df_train_pool["missing_teeth"].apply(len) == 0
+sample_ids_all_teeth = df_train_pool.loc[mask_all_teeth, "id_sample"].tolist()
 print(f"sample_ids_all_teeth: {len(sample_ids_all_teeth)}")
-df_remaining = df_remaining[~mask_all_teeth].copy()
-print(f"df_remaining: {len(df_remaining)}")
-split_sample_ids["train"] += sample_ids_all_teeth.to_list()
+split_sample_ids["valid"].extend(sample_ids_all_teeth)
 
 # has_model_base: false
-# split models without base separately to ensure balanced representation of this rarer subset (approx. 1:2 ratio to models with base).
-mask_has_model_base = df_remaining["has_model_base"] == True
-sample_ids_no_base = df_remaining.loc[~mask_has_model_base, "id_sample"].to_list()
+# add rare samples without model base to valid
+mask_no_base = df_train_pool["has_model_base"] == False
+sample_ids_no_base = df_train_pool.loc[mask_no_base, "id_sample"].tolist()
 print(f"sample_ids_no_base: {len(sample_ids_no_base)}")
-train_ids, valid_ids, test_ids = split_stratified(
-    df_remaining, sample_ids_no_base, test_size=0
-)
-print(
-    f"train_ids: {len(train_ids)}, valid_ids: {len(valid_ids)}, test_ids: {len(test_ids)}"
-)
-df_remaining = df_remaining[mask_has_model_base].copy()
-print(f"df_remaining: {len(df_remaining)}")
-split_sample_ids["train"].extend(train_ids)
-split_sample_ids["valid"].extend(valid_ids)
-split_sample_ids["test"].extend(test_ids)
+split_sample_ids["valid"].extend(sample_ids_no_base)
 
-# split remaining dataframe
-train_ids, valid_ids, test_ids = split_stratified(df_remaining, test_size=0)
-print(
-    f"train_ids: {len(train_ids)}, valid_ids: {len(valid_ids)}, test_ids: {len(test_ids)}"
-)
-split_sample_ids["train"].extend(train_ids)
-split_sample_ids["valid"].extend(valid_ids)
-split_sample_ids["test"].extend(test_ids)
+# choose remainig samples for valid split
+mask_remaining = (~mask_all_teeth) & (~mask_no_base)
+df_remaining = df_train_pool[mask_remaining].copy()
+if not df_remaining.empty:
+    _, valid_ids, _ = split_stratified(
+        df_remaining,
+        ids_to_split=df_remaining["id_sample"].tolist(),
+        test_size=0,
+        val_size=0.20,
+    )
+    split_sample_ids["valid"].extend(valid_ids)
+    print(f"valid_ids: {len(valid_ids)}")
 
 total_samples = sum(len(v) for v in split_sample_ids.values())
 for k, v in split_sample_ids.items():
@@ -254,8 +244,9 @@ for id, filepath in tqdm(
     # filter samples for split
     if any(filename.startswith(p) for p in split_sample_ids["train"]):
         sample_tag_ids["train"].append(id)
-    elif any(filename.startswith(p) for p in split_sample_ids["valid"]):
-        sample_tag_ids["valid"].append(id)
+        # TODO: quick hack
+        if any(filename.startswith(p) for p in split_sample_ids["valid"]):
+            sample_tag_ids["valid"].append(id)
     elif any(filename.startswith(p) for p in split_sample_ids["test"]):
         sample_tag_ids["test"].append(id)
     else:
