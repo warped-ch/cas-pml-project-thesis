@@ -80,6 +80,10 @@ obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
 #obj_file = dataset_path_3d / "raw/lower/3Y8A14TI/3Y8A14TI_lower.obj"
 # complete mess up, also mixing lower/upper?
 #obj_file = dataset_path_3d / "raw/upper/ZB8NU437/ZB8NU437_upper.obj"
+# mixup on 14, 15, 16
+#obj_file = dataset_path_3d / r"raw\upper\RMZC48A0\RMZC48A0_upper.obj"
+# mixup on 41, 42
+#obj_file = dataset_path_3d / r"raw\lower\ZM8PCSK6\ZM8PCSK6_lower.obj"
 
 print(f"obj_file={obj_file}")
 
