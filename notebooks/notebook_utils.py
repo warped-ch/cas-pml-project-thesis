@@ -178,4 +178,9 @@ def plot_mesh(
         show_scalar_bar=False,
         smooth_shading=True,
     )
+
+    # improve default cam pos (look at the model from the front)
+    campos_x, campos_y, campos_z = plotter.camera.position
+    plotter.camera.position = (campos_x, -campos_y, campos_z)
+
     plotter.show()
