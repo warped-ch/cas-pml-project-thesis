@@ -84,6 +84,16 @@ obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
 #obj_file = dataset_path_3d / r"raw\upper\RMZC48A0\RMZC48A0_upper.obj"
 # mixup on 41, 42
 #obj_file = dataset_path_3d / r"raw\lower\ZM8PCSK6\ZM8PCSK6_lower.obj"
+# mixup on 24, 25, 26
+#obj_file = dataset_path_3d / r"raw\upper\mccarthy\mccarthy_upper.obj"
+# mixup on 35, 36
+#obj_file = dataset_path_3d / r"raw\lower\YJXIBVIM\YJXIBVIM_lower.obj"
+# 35 labeled as 36
+#obj_file = dataset_path_3d / r"raw\lower\0NH6X4SS\0NH6X4SS_lower.obj"
+# fdi number mixup
+obj_file = dataset_path_3d / r"raw\upper\KSHNN3DV\KSHNN3DV_upper.obj"
+# double fdi labels on different teeth
+obj_file = dataset_path_3d / r"raw\lower\KAHYFGOY\KAHYFGOY_lower.obj"
 
 print(f"obj_file={obj_file}")
 
