@@ -16,6 +16,7 @@
 # # Debugging edge cases
 
 # %%
+import json
 import sys
 from pathlib import Path
 
@@ -136,6 +137,12 @@ nb_utils.plot_image_grid(
     images=annotated_images,
     titles=[f"elevation={view[0]}, azimuth={view[1]}" for view in views],
 )
+
+# render ground truth labels
+gt_json_file = obj_file.with_suffix(".json")
+with open(gt_json_file, "r") as f:
+    gt_label_dict = json.load(f)
+nb_utils.plot_mesh(mesh, np.array(gt_label_dict["labels"]), colors_pv)
 
 # %%
 # log individual per class detections
