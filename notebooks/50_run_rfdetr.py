@@ -103,7 +103,7 @@ label_annotator = sv.LabelAnnotator(
 
 for i, det in enumerate(ip.detections):
     labels = [class_name.replace("class_", "") for class_name in det["class_name"]]
-    print(f"det[{i}]: class_ids={det.class_id}, labels={labels}")
+    # print(f"det[{i}]: class_ids={det.class_id}, labels={labels}")
 
     annotated_img = mask_annotator.annotate(
         scene=det.metadata["source_image"].copy(), detections=det
