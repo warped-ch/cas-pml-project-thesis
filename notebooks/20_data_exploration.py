@@ -146,13 +146,14 @@ df_any_missing_teeth = df.assign(
     )
 )
 
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(6, 3))
 sns.set_style("whitegrid")
 ax = sns.countplot(data=df_any_missing_teeth, x="any_missing_teeth", hue="jaw")
 for container in ax.containers:
     ax.bar_label(container)
+ax.set(ylim=(0, 1000))
 
-plt.xlabel("Status")
+plt.xlabel("")
 plt.ylabel("Number of Scans")
 plt.title("Any Missing Teeth")
 plt.show()
