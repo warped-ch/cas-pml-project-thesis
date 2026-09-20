@@ -17,6 +17,7 @@
 
 # %%
 import json
+from datetime import datetime
 from pathlib import Path
 
 import notebook_utils as nb_utils
@@ -31,47 +32,66 @@ print(f"Using device: {device}")
 
 config = nb_utils.load_config()
 
+data_path = nb_utils.resolve_config_path("data_path", config)
+print(f"data_path={data_path}")
+
+train_output_path = nb_utils.resolve_config_path("output_rf_detr_train", config)
+print(f"train_output_path={train_output_path}")
+
 # %%
-train_out_path = (
-    nb_utils.resolve_config_path("output_rf_detr_train", config)
-    / "20260828_064008/Teeth2D"
-)
-print(f"train_out_path={train_out_path}")
-
-train_config_file = train_out_path / "training_config.json"
-print(f"train_config_file={train_config_file}")
-if train_config_file.is_file():
-    with open(train_config_file, "r") as f:
-        train_config = json.load(f)
-
-    dataset_dir = Path(train_config["train_config"]["dataset_dir"])
-else:
-    print("⚠️ fallback to dataset_path_2d from own config")
-    dataset_dir = nb_utils.resolve_config_path("dataset_path_2d", config)
-print(f"dataset_dir={dataset_dir}")
+eval_list = [
+    # Teeth2D
+    ("20260915_185454", "Teeth2D", "Teeth2D"),
+    ("20260912_010327", "Teeth2D", "Teeth2D"),
+    ("20260909_191810", "Teeth2D", "Teeth2D"),
+    # ("20260829_114546", "Teeth2D", "Teeth2D_custom"),
+    # ("20260828_064008", "Teeth2D", "Teeth2D_custom"),
+    # Teeth2D_lower
+    ("20260915_185454", "Teeth2D_lower", "Teeth2D_lower"),
+    ("20260912_010327", "Teeth2D_lower", "Teeth2D_lower"),
+    ("20260909_191810", "Teeth2D_lower", "Teeth2D_lower"),
+    ("20260909_035324", "Teeth2D_lower", "Teeth2D_lower"),
+    # ("20260828_064008", "Teeth2D_lower", "Teeth2D_lower_custom"),
+    # Teeth2D_upper
+    ("20260915_185454", "Teeth2D_upper", "Teeth2D_upper"),
+    ("20260912_010327", "Teeth2D_upper", "Teeth2D_upper"),
+    ("20260909_191810", "Teeth2D_upper", "Teeth2D_upper"),
+    ("20260909_035324", "Teeth2D_upper", "Teeth2D_upper"),
+    # ("20260828_064008", "Teeth2D_upper", "Teeth2D_upper_custom"),
+]
 
 split = "test"
 
-pth_files = list(train_out_path.glob("*.pth"))
-print(f"pth_files: {len(pth_files)}, {[pth_file.name for pth_file in pth_files]}")
+for train_out_folder, train_out_subfolder, dataset_name in eval_list:
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-for pth_file in pth_files:
-    print(f"pth_file={pth_file}")
+        model_checkpoint = train_output_path / train_out_folder / train_out_subfolder / "checkpoint_best_ema.pth"
+        print(f"model_checkpoint={model_checkpoint}")
+        dataset_path = data_path / dataset_name
+        print(f"dataset_path={dataset_path}")
 
-    model = RFDETRSegMedium(pretrain_weights=str(pth_file), device=device)
-    print(f"model.class_names: {model.class_names}")
-    print(f"model.model_config.resolution: {model.model_config.resolution}")
+        model = RFDETRSegMedium(pretrain_weights=str(model_checkpoint), device=device)
+        print(f"model.class_names: {model.class_names}")
+        print(f"model.model_config.resolution: {model.model_config.resolution}")
 
-    metrics = {}
-    metrics = model.evaluate(
-        dataset_dir=str(dataset_dir),
-        split=split,
-        batch_size=64,
-        progress_bar="tqdm",
-    )
+        batch_size = 8
+        model.inference(compile=True, batch_size=batch_size)
 
-    metrics_file = train_out_path / f"eval_{split}_{pth_file.stem}.json"
-    metrics_file.parent.mkdir(parents=True, exist_ok=True)
-    print(f"metrics_file={metrics_file}")
-    with open(metrics_file, "w") as f:
-        json.dump(metrics, f)
+        metrics = {}
+        metrics = model.evaluate(
+            dataset_dir=str(dataset_path),
+            split=split,
+            batch_size=batch_size,
+            progress_bar="tqdm",
+        )
+
+        metrics_file = (
+            model_checkpoint.parent
+            / f"RF-DETR_eval_{split}_{model_checkpoint.stem}_{timestamp}.json"
+        )
+        print(f"metrics_file={metrics_file}")
+        with open(metrics_file, "w") as f:
+            json.dump(metrics, f)
+    except Exception as e:
+        print(f"💥 exception caught while evaluation: {str(e)}")
