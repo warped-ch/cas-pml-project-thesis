@@ -66,7 +66,7 @@ nb_utils.plot_colors_fdi(colors, config["class_ids"])
 
 # %%
 # misprediction on 33, 34 / post processing leaves 33 completely enclosed by 34
-obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
+#obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
 # only two peaks visible for 14 / post processing relabels parts of it to 15
 #obj_file = dataset_path_3d / "raw/upper/SJDH33M1/SJDH33M1_upper.obj"
 # misprediction on 45, 46 / post processing failing on 46 (still some largest component leftover of mispredicted 47?)
@@ -92,9 +92,16 @@ obj_file = dataset_path_3d / "raw/lower/01KRDUKX/01KRDUKX_lower.obj"
 # 35 labeled as 36
 #obj_file = dataset_path_3d / r"raw\lower\0NH6X4SS\0NH6X4SS_lower.obj"
 # fdi number mixup
-obj_file = dataset_path_3d / r"raw\upper\KSHNN3DV\KSHNN3DV_upper.obj"
+#obj_file = dataset_path_3d / r"raw\upper\KSHNN3DV\KSHNN3DV_upper.obj"
 # double fdi labels on different teeth
-obj_file = dataset_path_3d / r"raw\lower\KAHYFGOY\KAHYFGOY_lower.obj"
+#obj_file = dataset_path_3d / r"raw\lower\KAHYFGOY\KAHYFGOY_lower.obj"
+
+# good
+#obj_file = dataset_path_3d / r"raw\lower\HQN0ZJDP\HQN0ZJDP_lower.obj"
+# good difficult
+#obj_file = dataset_path_3d / r"raw\lower\DC8VMT30\DC8VMT30_lower.obj"
+# good, difficult 2x same tooth?
+obj_file = dataset_path_3d / r"raw\upper\0140E7V2\0140E7V2_upper.obj"
 
 print(f"obj_file={obj_file}")
 
